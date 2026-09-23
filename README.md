@@ -1,6 +1,8 @@
-# Wattle & Weave
+# Saltbush
 
 An online store for towels and rugs, built for Australia: AUD with GST-inclusive pricing, Australia Post postcode and state validation, Afterpay, and returns wording that meets the Australian Consumer Law.
+
+"Saltbush" is a placeholder name. It's set in `lib/store.ts`, along with the other business details.
 
 **Stack:** Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · Prisma 7 + SQLite · Stripe Checkout · Nodemailer
 
@@ -16,36 +18,52 @@ npm run dev
 
 Open http://localhost:3000. The admin is at `/admin`.
 
-With no `STRIPE_SECRET_KEY` the shop runs in **demo mode**: checkout creates real orders and marks them paid without taking money. With no `SMTP_HOST`, emails are printed to the server console instead of sent.
+With no `STRIPE_SECRET_KEY` the shop runs in **test mode**: checkout creates real orders and marks them paid without taking money, and the checkout page shows a notice saying so. With no `SMTP_HOST`, emails are printed to the server console instead of sent.
 
 > npm 11 blocks install scripts by default. If `better-sqlite3` fails to load, run
 > `npm approve-scripts better-sqlite3 prisma @prisma/engines esbuild` and then `npm rebuild`.
 
+## Photos
+
+Product and page photos are **free-licence stand-ins from Unsplash** ([licence](https://unsplash.com/license)), loaded from Unsplash's CDN at the size each screen needs (`lib/image-loader.ts`). The catalogue in `prisma/seed.ts` was written to match what the photos show, but they are not photos of your stock.
+
+**Replace them with your own before you sell anything.** Showing a product that isn't the one customers will receive is misleading under the Australian Consumer Law.
+
+To use your own photos:
+
+- Each product has a list of images, and each image can be tied to one colour (it shows when that colour is picked) or left untied (it shows for every colour).
+- Set the image URLs in `prisma/seed.ts`, or edit the `ProductImage` table with `npm run db:studio`.
+- Any image URL works. To have Next.js serve other hosts, add them to `lib/image-loader.ts`.
+
 ## Features
 
 **Shopping**
-- Collections, search, and filters for colour, price and stock, with sorting
-- Product pages: colour and size variants, live stock ("only 3 left"), a delivery-cost check by postcode, reviews with a rating breakdown, related products
-- Monogramming on towels (+$12) with a live preview
-- Cart drawer and cart page, a free-shipping progress bar, and a wishlist (both saved in the browser)
-- Illustrated product images drawn in each variant's real colours. Set `imageUrl` on a product to use a photo instead
+- Collections with colour, price and stock filters, sorting and search
+- Product pages:
+  - a gallery that switches with the selected colour
+  - size options and live stock ("only 3 left")
+  - a delivery check by postcode
+  - reviews and related products
+- Towel monogramming (+$12), a gift note and gift wrap
+- Cart drawer, cart page, a free-delivery progress bar, and a wishlist (both saved in the browser)
 
 **Checkout** (`app/(shop)/checkout`)
 - Prices are recalculated on the server from the database; the prices shown in the browser are never trusted
 - Checks that the postcode matches the state, and checks stock
 - Delivery zones: metro, regional, and remote (WA/NT/TAS); standard and express
-- Discount codes (`WELCOME10`, one use per email), gift wrap, and a free handwritten gift note
-- Stripe Checkout (cards, Apple Pay, Google Pay, Afterpay) plus a webhook. The confirmation email doubles as a tax invoice (ABN, GST)
+- Discount codes (`WELCOME10`, one use per email)
+- Stripe Checkout (cards, Apple Pay, Google Pay, Afterpay) plus a webhook. The confirmation email is also a tax invoice (ABN, GST)
+- Order numbers run 1001, 1002, and so on
 
 **Admin** (`/admin`, password login)
 - Dashboard: revenue, orders waiting to be packed, low stock
-- Orders: filter and search, a packing view that highlights monograms and gift notes, status and tracking updates, and a "shipped" email to the customer
+- Orders: a packing view that flags monograms, gift notes and gift wrap; status and tracking updates; a "shipped" email to the customer
 - Edit prices and stock, hide or show products
 - Approve reviews, read contact messages, export subscribers to CSV
 
 **Everything else**
-- Pages: About, Contact, FAQ, Shipping, Returns (ACL mandatory text), Privacy (APPs), Terms, Care guide, Order tracking
-- SEO: per-page metadata, Open Graph share images, `sitemap.xml`, `robots.txt`, and schema.org data for Product, Offer, Review, FAQ and Organization
+- Pages: About, Contact, FAQ, Delivery, Returns (ACL mandatory text), Privacy (APPs), Terms, Care guide, Order tracking
+- SEO: per-page metadata, Open Graph share images, `sitemap.xml`, `robots.txt`, and schema.org data for Product, Offer, FAQ and Organization
 - Accessibility: skip link, focus states, labelled controls, reduced-motion support
 - Security: HMAC-signed admin session, rate limits on public forms, honeypot spam traps, secret order links, security headers
 
@@ -53,20 +71,22 @@ With no `STRIPE_SECRET_KEY` the shop runs in **demo mode**: checkout creates rea
 
 | What | Where |
 |---|---|
-| Brand name, ABN, contact details, founders' note, shipping threshold, monogram price | `lib/store.ts` |
-| Shipping rates and delivery estimates | `lib/shipping.ts` |
-| Products (starter catalogue) | `prisma/seed.ts` → `npm run db:seed` |
-| Collections and category copy | `lib/collections.ts` |
-| Colours and fonts | `app/globals.css` (`@theme`), `app/layout.tsx` |
+| Brand name, ABN, contact details, Traditional Custodians, delivery threshold, monogram price | `lib/store.ts` |
+| Delivery rates and estimates | `lib/shipping.ts` |
+| Products, photos, colours, sizes | `prisma/seed.ts` → `npm run db:seed` (safe to re-run; keeps variant ids stable) |
+| Collection names, descriptions and tile photos | `lib/collections.ts` |
+| Colours and type | `app/globals.css` (`@theme`), `app/layout.tsx` (Archivo) |
+| Home page copy and photos | `app/(shop)/page.tsx` |
 | Emails | `lib/email.ts` |
 
 ## Launch checklist
 
-- [ ] **Business details** in `lib/store.ts`: real ABN, legal name, address, phone, email, social links
-- [ ] **Founders' note and About page**: rewrite in your own words (these are the "personal touch" and they are placeholders)
-- [ ] **Product copy**: check every claim (GSM, materials, "washable", "hand-woven") against the real stock. Under the ACL, product descriptions are representations you are liable for
-- [ ] **Photos**: set `imageUrl` for each product (Google product rich results need a real photo)
-- [ ] **Stripe**: add `STRIPE_SECRET_KEY`; turn on Afterpay, Apple Pay and Google Pay under Dashboard → Settings → Payment methods; add a webhook to `https://<domain>/api/stripe/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` and `checkout.session.expired`, then set `STRIPE_WEBHOOK_SECRET`
+- [ ] **Name and business details** in `lib/store.ts`: brand, ABN, legal name, address, phone, email, Instagram handle, Traditional Custodians for your location
+- [ ] **Your own photos** for every product and for the home and About pages (see above)
+- [ ] **Product copy**: check every claim (GSM, materials, "washable", "hand-woven") against the real stock
+- [ ] **Reviews**: reseed with `SEED_REVIEWS=false npm run db:seed` so the sample reviews are removed. Publishing reviews that aren't from real customers breaches the ACL
+- [ ] **About page**: rewrite in your own words (`app/(shop)/about/page.tsx`)
+- [ ] **Stripe**: add `STRIPE_SECRET_KEY`; turn on Afterpay, Apple Pay and Google Pay in Dashboard → Settings → Payment methods; add a webhook to `https://<domain>/api/stripe/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` and `checkout.session.expired`, then set `STRIPE_WEBHOOK_SECRET`
 - [ ] **Email**: SMTP credentials and `MAIL_FROM` on your own domain (set up SPF and DKIM)
 - [ ] **Admin**: a strong `ADMIN_PASSWORD` and a random `ADMIN_SECRET` of 32+ characters
 - [ ] **Legal**: have the Privacy policy and Terms reviewed (they are templates, not legal advice)
@@ -75,8 +95,8 @@ With no `STRIPE_SECRET_KEY` the shop runs in **demo mode**: checkout creates rea
 
 ## Deploying
 
-This is a standard Node app (`npm run build && npm start`) and runs under PM2 on any VPS. SQLite suits a single server; back up `prisma/dev.db` (or whatever `DATABASE_URL` points to).
+This is a standard Node app (`npm run build && npm start`) and runs under PM2 on any VPS. SQLite suits a single server; back up the database file.
 
 To use MySQL or MariaDB instead: change `provider` in `prisma/schema.prisma`, swap the adapter in `lib/prisma.ts` and `prisma/seed.ts` for `@prisma/adapter-mariadb`, delete `prisma/migrations`, and run `npx prisma migrate dev --name init`.
 
-The rate limiter is in-memory, so it assumes one Node process. Swap it for Redis before running multiple instances.
+The rate limiter is in-memory, so it assumes one Node process.

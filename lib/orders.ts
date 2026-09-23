@@ -29,11 +29,11 @@ export function tokenMatches(expected: string, given: string | undefined | null)
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-/** Sequential, human-friendly order numbers: WW-10001, WW-10002, … */
+/** Sequential order numbers starting at 1001, shown to customers as #1001 */
 export async function nextOrderNumber() {
   const last = await prisma.order.findFirst({ orderBy: { createdAt: "desc" }, select: { number: true } });
-  const n = last ? Number(last.number.replace(/\D/g, "")) : 10000;
-  return `WW-${(Number.isFinite(n) ? n : 10000) + 1}`;
+  const n = last ? Number(last.number.replace(/\D/g, "")) : 1000;
+  return String((Number.isFinite(n) ? n : 1000) + 1);
 }
 
 /**

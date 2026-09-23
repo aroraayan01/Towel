@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { Suspense } from "react";
 
 import { ProductGrid } from "@/components/product/ProductCard";
-import { Breadcrumbs, PageHeader } from "@/components/ui";
+import { PageTitle } from "@/components/ui";
 import { CATEGORIES, COLLECTIONS, type Category } from "@/lib/collections";
 import { allColours, listProducts, type SortKey } from "@/lib/products";
 import { SortSelect } from "./SortSelect";
@@ -21,7 +22,6 @@ const PRICE_CAPS = [
 export async function ShopListing({
   title,
   intro,
-  eyebrow,
   category,
   collection,
   searchParams,
@@ -29,7 +29,6 @@ export async function ShopListing({
 }: {
   title: string;
   intro?: string;
-  eyebrow?: string;
   category?: Category;
   collection?: string;
   searchParams: Params;
@@ -61,147 +60,130 @@ export async function ShopListing({
     return s ? `${basePath}?${s}` : basePath;
   };
 
-  const activeFilters = [
-    q && { label: `“${q}”`, href: href({ q: undefined }) },
+  const active = [
+    q && { label: `"${q}"`, href: href({ q: undefined }) },
     colour && { label: colour, href: href({ colour: undefined }) },
     maxPrice && { label: PRICE_CAPS.find(([c]) => c === maxPrice)?.[1] ?? "Price", href: href({ max: undefined }) },
     inStock && { label: "In stock", href: href({ stock: undefined }) },
   ].filter(Boolean) as { label: string; href: string }[];
 
-  const siblings = COLLECTIONS.filter((c) => !category || c.category === category);
+  const tabs = COLLECTIONS.filter((c) => !category || c.category === category);
+  const crumbs = [
+    { href: "/", label: "Home" },
+    ...(collection && category ? [{ href: `/shop/${category}`, label: CATEGORIES[category].name }] : []),
+    { label: q ? "Search" : title },
+  ];
 
   return (
     <>
-      <PageHeader eyebrow={eyebrow} title={q ? `Results for “${q}”` : title} intro={intro} />
-      <div className="container-page py-8">
-        <Breadcrumbs
-          items={[
-            { href: "/", label: "Home" },
-            ...(collection && category
-              ? [{ href: `/shop/${category}`, label: CATEGORIES[category].name }]
-              : [{ href: "/shop", label: "Shop" }]),
-            { label: title },
-          ]}
-        />
+      <PageTitle title={q ? `Search: ${q}` : title} intro={q ? undefined : intro} crumbs={crumbs} />
 
-        <div className="mt-6 grid gap-10 lg:grid-cols-[15rem_1fr]">
-          <aside aria-label="Filters" className="space-y-8 text-sm">
-            <div>
-              <h2 className="mb-3 font-sans text-sm font-bold tracking-wider uppercase">Collections</h2>
-              <ul className="flex flex-wrap gap-2 lg:block lg:space-y-1">
-                {siblings.map((c) => (
-                  <li key={c.slug}>
-                    <Link
-                      href={`/shop/${c.slug}`}
-                      className={`block rounded-full border px-3 py-1.5 lg:rounded-lg lg:border-0 lg:px-2 ${
-                        c.slug === collection ? "border-gum bg-gum-light font-semibold text-gum-dark" : "border-line hover:bg-sand"
-                      }`}
-                      aria-current={c.slug === collection ? "page" : undefined}
-                    >
-                      {c.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+      <div className="page-x">
+        {/* Collection tabs */}
+        <nav aria-label="Collections" className="no-scrollbar -mx-5 flex gap-6 overflow-x-auto border-b border-line px-5 text-[14px] md:mx-0 md:px-0">
+          {!collection && (
+            <span className="shrink-0 border-b border-ink pb-3" aria-current="page">
+              All
+            </span>
+          )}
+          {collection && category && (
+            <Link href={`/shop/${category}`} className="shrink-0 pb-3 text-grey hover:text-ink">
+              All
+            </Link>
+          )}
+          {tabs.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/shop/${c.slug}`}
+              aria-current={c.slug === collection ? "page" : undefined}
+              className={`shrink-0 pb-3 ${c.slug === collection ? "border-b border-ink" : "text-grey hover:text-ink"}`}
+            >
+              {c.name}
+            </Link>
+          ))}
+        </nav>
 
-            <div>
-              <h2 className="mb-3 font-sans text-sm font-bold tracking-wider uppercase">Colour</h2>
-              <ul className="flex flex-wrap gap-2">
+        {/* Filter bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 py-4 text-[14px]">
+          <div className="flex flex-wrap items-center gap-2">
+            <Dropdown label="Colour" active={!!colour}>
+              <ul className="grid grid-cols-2 gap-x-6 gap-y-2">
                 {colours.map((c) => {
-                  const active = colour?.toLowerCase() === c.colourName.toLowerCase();
+                  const on = colour?.toLowerCase() === c.colourName.toLowerCase();
                   return (
                     <li key={c.colourName}>
-                      <Link
-                        href={href({ colour: active ? undefined : c.colourName })}
-                        title={c.colourName}
-                        aria-label={`${active ? "Remove" : "Filter by"} colour ${c.colourName}`}
-                        className={`block size-8 rounded-full border-2 transition hover:scale-110 ${
-                          active ? "border-ink ring-2 ring-ink ring-offset-2" : "border-white shadow"
-                        }`}
-                        style={{ background: c.colourHex }}
-                      />
+                      <Link href={href({ colour: on ? undefined : c.colourName })} className={`flex items-center gap-2 ${on ? "font-medium" : ""}`}>
+                        <span className="size-4 shrink-0 rounded-full ring-1 ring-black/10" style={{ background: c.colourHex }} />
+                        {c.colourName}
+                      </Link>
                     </li>
                   );
                 })}
               </ul>
-            </div>
-
-            <div>
-              <h2 className="mb-3 font-sans text-sm font-bold tracking-wider uppercase">Price</h2>
-              <ul className="flex flex-wrap gap-2">
+            </Dropdown>
+            <Dropdown label="Price" active={!!maxPrice}>
+              <ul className="space-y-2">
                 {PRICE_CAPS.map(([cap, label]) => (
                   <li key={cap}>
-                    <Link
-                      href={href({ max: maxPrice === cap ? undefined : String(cap) })}
-                      className={`block rounded-full border px-3 py-1.5 ${
-                        maxPrice === cap ? "border-gum bg-gum-light font-semibold" : "border-line hover:bg-sand"
-                      }`}
-                    >
+                    <Link href={href({ max: maxPrice === cap ? undefined : String(cap) })} className={maxPrice === cap ? "font-medium" : ""}>
                       {label}
                     </Link>
                   </li>
                 ))}
               </ul>
-            </div>
+            </Dropdown>
+            <Link href={href({ stock: inStock ? undefined : "1" })} className={`border px-3 py-2 ${inStock ? "border-ink" : "border-line hover:border-ink"}`} aria-pressed={inStock}>
+              In stock only
+            </Link>
+            {active.map((f) => (
+              <Link key={f.label} href={f.href} className="flex items-center gap-1.5 bg-bone px-3 py-2 hover:bg-stone">
+                {f.label} <span aria-hidden>×</span>
+                <span className="sr-only">(remove filter)</span>
+              </Link>
+            ))}
+            {active.length > 0 && (
+              <Link href={basePath} className="link ml-1 text-grey">
+                Clear
+              </Link>
+            )}
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-grey" aria-live="polite">
+              {products.length} {products.length === 1 ? "product" : "products"}
+            </span>
+            <Suspense>
+              <SortSelect value={sort} />
+            </Suspense>
+          </div>
+        </div>
 
-            <div>
-              <Link href={href({ stock: inStock ? undefined : "1" })} className="flex items-center gap-2" aria-pressed={inStock}>
-                <span
-                  className={`grid size-5 place-items-center rounded border-2 text-xs ${
-                    inStock ? "border-gum bg-gum text-white" : "border-line bg-white"
-                  }`}
-                  aria-hidden
-                >
-                  {inStock && "✓"}
-                </span>
-                Hide sold-out items
+        <div className="pb-20 pt-4">
+          {products.length ? (
+            <ProductGrid products={products} eager={4} />
+          ) : (
+            <div className="border-t border-line py-20 text-center">
+              <p className="text-lg">No products match those filters.</p>
+              <Link href={basePath} className="btn btn-line mt-6">
+                Clear filters
               </Link>
             </div>
-          </aside>
-
-          <section aria-label="Products">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-muted text-sm" aria-live="polite">
-                {products.length} {products.length === 1 ? "product" : "products"}
-              </p>
-              <Suspense>
-                <SortSelect value={sort} />
-              </Suspense>
-            </div>
-
-            {activeFilters.length > 0 && (
-              <ul className="mb-6 flex flex-wrap items-center gap-2 text-sm">
-                {activeFilters.map((f) => (
-                  <li key={f.label}>
-                    <Link href={f.href} className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1 text-white hover:bg-ink/80">
-                      {f.label} <span aria-hidden>×</span>
-                      <span className="sr-only">remove filter</span>
-                    </Link>
-                  </li>
-                ))}
-                <li>
-                  <Link href={basePath} className="underline underline-offset-4">
-                    Clear all
-                  </Link>
-                </li>
-              </ul>
-            )}
-
-            {products.length ? (
-              <ProductGrid products={products} />
-            ) : (
-              <div className="rounded-2xl bg-sand px-6 py-16 text-center">
-                <p className="font-serif text-2xl">Nothing matches that just yet</p>
-                <p className="text-muted mt-2">Try removing a filter, or have a look at everything.</p>
-                <Link href="/shop" className="btn btn-primary mt-6">
-                  Shop all
-                </Link>
-              </div>
-            )}
-          </section>
+          )}
         </div>
       </div>
     </>
+  );
+}
+
+function Dropdown({ label, active, children }: { label: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <details className="group relative">
+      <summary className={`flex cursor-pointer list-none items-center gap-2 border px-3 py-2 [&::-webkit-details-marker]:hidden ${active ? "border-ink" : "border-line hover:border-ink"}`}>
+        {label}
+        <ChevronDown size={14} strokeWidth={1.5} className="transition group-open:rotate-180" aria-hidden />
+      </summary>
+      <div className="absolute left-0 top-full z-20 mt-1 min-w-56 border border-line bg-white p-4 shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
+        {children}
+      </div>
+    </details>
   );
 }

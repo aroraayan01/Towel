@@ -1,57 +1,55 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Trash2 } from "lucide-react";
 
-import { useCart } from "@/components/cart/CartProvider";
-import { TextileArt } from "@/components/TextileArt";
+import { Photo } from "@/components/Photo";
 import { FreeShippingBar, QtyStepper } from "@/components/ui";
 import { formatMoney } from "@/lib/money";
 import { lineKey, lineTotalCents, lineUnitCents, totals } from "@/lib/pricing";
+import { useCart } from "./CartProvider";
 
 export function CartView() {
   const { lines, ready, setQuantity, remove } = useCart();
   const t = totals({ lines });
 
-  if (!ready) return <div className="container-page min-h-[50vh] py-16" aria-busy />;
+  if (!ready) return <div className="page-x min-h-[50vh] py-16" aria-busy />;
 
   return (
-    <div className="container-page py-10 sm:py-14">
-      <h1 className="text-4xl">Your cart</h1>
+    <div className="page-x py-10 md:py-14">
+      <h1 className="wide text-3xl md:text-4xl">Cart</h1>
       {lines.length === 0 ? (
-        <div className="mt-10 rounded-3xl bg-sand px-6 py-20 text-center">
-          <p className="font-serif text-2xl">Nothing in here yet</p>
-          <p className="text-muted mt-2">Our bestsellers are a good place to start.</p>
-          <Link href="/shop" className="btn btn-primary mt-8">
-            Start shopping
+        <div className="mt-10 border-t border-line py-20 text-center">
+          <p>Your cart is empty.</p>
+          <Link href="/shop" className="btn btn-dark mt-6">
+            Continue shopping
           </Link>
         </div>
       ) : (
-        <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_24rem]">
-          <ul className="divide-y divide-line border-y border-line">
+        <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_380px] lg:gap-16">
+          <ul className="border-t border-line">
             {lines.map((l) => {
               const key = lineKey(l);
               return (
-                <li key={key} className="flex gap-4 py-5 sm:gap-6">
-                  <Link href={`/products/${l.slug}`} className="size-24 shrink-0 overflow-hidden rounded-xl bg-sand sm:size-32">
-                    <TextileArt category={l.category} collection={l.collection} pattern={l.pattern} colour={l.colourHex} accent={l.accentHex} imageUrl={l.imageUrl} alt={l.name} />
+                <li key={key} className="flex gap-5 border-b border-line py-6">
+                  <Link href={`/products/${l.slug}`} className="relative aspect-[4/5] w-24 shrink-0 bg-bone md:w-32">
+                    <Photo src={l.image} alt={l.name} sizes="128px" />
                   </Link>
-                  <div className="flex flex-1 flex-col">
+                  <div className="flex flex-1 flex-col text-[14px]">
                     <div className="flex justify-between gap-3">
                       <div>
-                        <Link href={`/products/${l.slug}`} className="text-lg font-semibold hover:underline">
+                        <Link href={`/products/${l.slug}`} className="text-[15px] hover:underline">
                           {l.name}
                         </Link>
-                        <p className="text-muted">{l.variantLabel}</p>
-                        {l.monogram && <p className="text-gum text-sm">Monogram: {l.monogram} (+{formatMoney(lineUnitCents(l) - l.unitCents)})</p>}
-                        <p className="text-muted text-sm">{formatMoney(lineUnitCents(l))} each</p>
+                        <p className="text-grey">{l.variantLabel}</p>
+                        {l.monogram && <p className="text-grey">Monogram: {l.monogram}</p>}
+                        <p className="mt-1 text-grey">{formatMoney(lineUnitCents(l))} each</p>
                       </div>
-                      <p className="font-semibold tabular-nums">{formatMoney(lineTotalCents(l))}</p>
+                      <p className="tabular-nums">{formatMoney(lineTotalCents(l))}</p>
                     </div>
-                    <div className="mt-auto flex items-center gap-4 pt-3">
-                      <QtyStepper value={l.quantity} onChange={(n) => setQuantity(key, n)} label={`Quantity of ${l.name}`} />
-                      <button onClick={() => remove(key)} className="text-muted flex items-center gap-1 text-sm hover:text-clay">
-                        <Trash2 size={15} /> Remove
+                    <div className="mt-auto flex items-center gap-5 pt-4">
+                      <QtyStepper small value={l.quantity} onChange={(n) => setQuantity(key, n)} label={`Quantity of ${l.name}`} />
+                      <button onClick={() => remove(key)} className="link text-[13px] text-grey">
+                        Remove
                       </button>
                     </div>
                   </div>
@@ -59,18 +57,18 @@ export function CartView() {
               );
             })}
           </ul>
-          <aside className="h-fit rounded-3xl bg-white p-6 shadow-sm ring-1 ring-line">
+          <aside className="h-fit bg-bone p-6">
             <FreeShippingBar remaining={t.toFreeShipping} />
-            <div className="mt-5 flex justify-between text-lg font-semibold">
+            <div className="mt-6 flex justify-between text-[15px]">
               <span>Subtotal</span>
               <span className="tabular-nums">{formatMoney(t.subtotal)}</span>
             </div>
-            <p className="text-muted mt-1 text-sm">Includes GST. Shipping, gift notes and discount codes at checkout.</p>
-            <Link href="/checkout" className="btn btn-primary mt-5 w-full py-4">
+            <p className="mt-1 text-[12px] text-grey">Includes GST. Delivery, gift notes and discount codes at checkout.</p>
+            <Link href="/checkout" className="btn btn-dark mt-5 w-full">
               Checkout
             </Link>
-            <Link href="/shop" className="mt-4 flex items-center justify-center gap-1 text-sm underline underline-offset-4">
-              <ArrowLeft size={14} /> Keep shopping
+            <Link href="/shop" className="link mt-4 block text-center text-[13px]">
+              Continue shopping
             </Link>
           </aside>
         </div>

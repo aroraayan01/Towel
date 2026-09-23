@@ -4,47 +4,54 @@ import { useActionState } from "react";
 
 import { subscribe, type FormState } from "@/app/actions";
 
-export function NewsletterForm({ dark = false }: { dark?: boolean }) {
+export function NewsletterForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(subscribe, null);
 
   if (state?.ok) {
     return (
-      <p className={`rounded-xl px-4 py-3 text-sm font-medium ${dark ? "bg-white/10" : "bg-gum-light text-gum-dark"}`} role="status">
+      <p className="border border-line px-4 py-3 text-[14px]" role="status">
         {state.message}
       </p>
     );
   }
 
   return (
-    <form action={action} className="w-full">
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <label htmlFor={dark ? "nl-email-f" : "nl-email"} className="sr-only">
+    <form action={action}>
+      <div className="flex">
+        <label htmlFor="nl-email" className="sr-only">
           Email address
         </label>
         <input
-          id={dark ? "nl-email-f" : "nl-email"}
+          id="nl-email"
           name="email"
           type="email"
           required
           autoComplete="email"
-          placeholder="Your email address"
-          className={`field ${dark ? "border-white/20 bg-white/10 text-white placeholder:text-white/60" : ""}`}
+          placeholder="Email address"
+          className="input border-r-0"
           aria-invalid={state && !state.ok ? true : undefined}
         />
-        {/* honeypot — hidden from people, irresistible to bots */}
         <input name="company" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
-        <button className={`btn shrink-0 ${dark ? "btn-light" : "btn-primary"}`} disabled={pending}>
-          {pending ? "Joining…" : "Get 10% off"}
+        <button className="btn btn-dark shrink-0 px-5" disabled={pending}>
+          {pending ? "…" : "Sign up"}
         </button>
       </div>
       {state && !state.ok && (
-        <p className="mt-2 text-sm text-clay" role="alert">
+        <p className="mt-2 text-[13px] text-sale" role="alert">
           {state.message}
         </p>
       )}
-      <p className={`mt-2 text-xs ${dark ? "text-white/60" : "text-muted"}`}>
-        One email a month, tops. Unsubscribe any time. See our <a href="/privacy" className="underline">privacy policy</a>.
+      <p className="mt-2 text-[12px] text-grey">
+        Unsubscribe any time. <Link href="/privacy">Privacy policy</Link>.
       </p>
     </form>
+  );
+}
+
+function Link({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} className="link">
+      {children}
+    </a>
   );
 }

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ChevronDown } from "lucide-react";
 
 import { ReviewForm } from "@/components/forms/ReviewForm";
+import { DeliveryCheck } from "@/components/product/DeliveryCheck";
 import { ProductBuyBox } from "@/components/product/ProductBuyBox";
 import { ProductGrid } from "@/components/product/ProductCard";
 import { Breadcrumbs, Stars } from "@/components/ui";
@@ -18,9 +18,9 @@ export async function generateMetadata({ params }: PageProps<"/products/[slug]">
   const from = Math.min(...p.variants.map((v) => v.priceCents));
   return {
     title: p.name,
-    description: `${p.tagline} From ${formatPrice(from)}. ${p.material}. Free shipping over ${formatPrice(store.commerce.freeShippingThresholdCents)} Australia-wide.`,
+    description: `${p.tagline} From ${formatPrice(from)}. Free delivery over ${formatPrice(store.commerce.freeShippingThresholdCents)}.`,
     alternates: { canonical: `/products/${p.slug}` },
-    openGraph: { title: p.name, description: p.tagline, type: "website" },
+    openGraph: { title: p.name, description: p.tagline, images: p.images[0] ? [{ url: `${p.images[0].url}?w=1200&h=630&fit=crop` }] : undefined },
   };
 }
 
@@ -34,7 +34,6 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
   const collection = collectionBySlug(p.collection);
   const details: string[] = JSON.parse(p.details);
   const rating = p.reviews.length ? p.reviews.reduce((s, r) => s + r.rating, 0) / p.reviews.length : null;
-  const distribution = [5, 4, 3, 2, 1].map((n) => ({ n, count: p.reviews.filter((r) => r.rating === n).length }));
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -44,20 +43,16 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
     material: p.material,
     brand: { "@type": "Brand", name: store.name },
     url: `${store.url}/products/${p.slug}`,
-    // Google needs a real photo for product rich results — set imageUrl on the product
-    ...(p.imageUrl && { image: p.imageUrl }),
+    image: p.images.map((i) => i.url),
     offers: p.variants.map((v) => ({
       "@type": "Offer",
       sku: v.sku,
-      name: `${p.name} — ${v.colourName}, ${v.size}`,
+      name: `${p.name}, ${v.colourName}, ${v.size}`,
       price: (v.priceCents / 100).toFixed(2),
       priceCurrency: "AUD",
       availability: v.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
-      shippingDetails: {
-        "@type": "OfferShippingDetails",
-        shippingDestination: { "@type": "DefinedRegion", addressCountry: "AU" },
-      },
+      shippingDetails: { "@type": "OfferShippingDetails", shippingDestination: { "@type": "DefinedRegion", addressCountry: "AU" } },
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
         applicableCountry: "AU",
@@ -67,18 +62,11 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
     })),
     ...(rating && {
       aggregateRating: { "@type": "AggregateRating", ratingValue: rating.toFixed(1), reviewCount: p.reviews.length },
-      review: p.reviews.slice(0, 5).map((r) => ({
-        "@type": "Review",
-        reviewRating: { "@type": "Rating", ratingValue: r.rating },
-        author: { "@type": "Person", name: r.name },
-        name: r.title,
-        reviewBody: r.body,
-      })),
     }),
   };
 
   return (
-    <div className="container-page py-6 sm:py-10">
+    <div className="page-x pb-20 pt-5">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <Breadcrumbs
         items={[
@@ -89,7 +77,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
         ]}
       />
 
-      <div className="mt-6">
+      <div className="mt-5">
         <ProductBuyBox
           initialColour={typeof colour === "string" ? colour : undefined}
           product={{
@@ -97,15 +85,10 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
             slug: p.slug,
             name: p.name,
             tagline: p.tagline,
-            category: p.category,
-            collection: p.collection,
-            pattern: p.pattern,
-            imageUrl: p.imageUrl,
             monogramable: p.monogramable,
-            isNew: p.isNew,
-            bestseller: p.bestseller,
             rating,
             reviewCount: p.reviews.length,
+            images: p.images.map((i) => ({ url: i.url, alt: i.alt, colourName: i.colourName })),
             variants: p.variants.map((v) => ({
               id: v.id,
               colourName: v.colourName,
@@ -117,98 +100,67 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
               stock: v.stock,
             })),
           }}
-        />
+        >
+          <div className="mt-8 border-t border-line">
+            <Section title="Description" open>
+              <p>{p.description}</p>
+            </Section>
+            <Section title="Details and care">
+              <ul className="list-disc space-y-1 pl-4">
+                {details.map((d) => (
+                  <li key={d}>{d}</li>
+                ))}
+              </ul>
+              <p className="mt-3">
+                <span className="text-ink">Material:</span> {p.material}
+              </p>
+              <p className="mt-3">{p.care}</p>
+            </Section>
+            <Section title="Delivery and returns">
+              <p>
+                Free standard delivery on orders over {formatPrice(store.commerce.freeShippingThresholdCents)}. Orders leave us
+                within 1 to 2 business days. Unused items can be returned within {store.commerce.returnDays} days.{" "}
+                <a href="/returns" className="link">
+                  Returns policy
+                </a>
+              </p>
+              <DeliveryCheck />
+            </Section>
+          </div>
+        </ProductBuyBox>
       </div>
 
-      {/* ── Story & details ─────────────────────────── */}
-      <section className="mt-16 grid gap-10 border-t border-line pt-12 lg:grid-cols-2">
-        <div>
-          <h2 className="text-2xl sm:text-3xl">The story</h2>
-          <p className="mt-4 text-lg leading-relaxed text-[#463f39]">{p.description}</p>
-        </div>
-        <div className="divide-y divide-line rounded-2xl border border-line bg-white">
-          <Accordion title="Details" open>
-            <ul className="space-y-2">
-              {details.map((d) => (
-                <li key={d} className="flex gap-2">
-                  <span className="text-gum" aria-hidden>✓</span>
-                  {d}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3">
-              <strong>Material:</strong> {p.material}
-            </p>
-          </Accordion>
-          <Accordion title="Care instructions">
-            <p>{p.care}</p>
-            <p className="mt-2">
-              More tips in our <a href="/care-guide" className="underline">care guide</a>.
-            </p>
-          </Accordion>
-          <Accordion title="Shipping & returns">
-            <p>
-              Orders ship from our warehouse within 1–2 business days. Standard delivery takes 2–9 business days depending on
-              where you are, and it&apos;s free on orders over {formatPrice(store.commerce.freeShippingThresholdCents)}.
-            </p>
-            <p className="mt-2">
-              Changed your mind? Return unused items within {store.commerce.returnDays} days. Faulty items are always covered
-              under Australian Consumer Law. <a href="/returns" className="underline">Full returns policy</a>.
-            </p>
-          </Accordion>
-        </div>
-      </section>
-
-      {/* ── Reviews ─────────────────────────────────── */}
-      <section id="reviews" className="mt-16 scroll-mt-28 border-t border-line pt-12">
-        <div className="grid gap-10 lg:grid-cols-[18rem_1fr]">
+      {/* Reviews */}
+      <section id="reviews" className="mt-20 scroll-mt-28 border-t border-line pt-10">
+        <div className="grid gap-10 lg:grid-cols-[1fr_2fr]">
           <div>
-            <h2 className="text-2xl sm:text-3xl">Reviews</h2>
+            <h2 className="text-2xl">Reviews</h2>
             {rating !== null ? (
-              <>
-                <p className="mt-4 flex items-center gap-3">
-                  <span className="font-serif text-5xl">{rating.toFixed(1)}</span>
-                  <span>
-                    <Stars rating={rating} size={18} />
-                    <span className="text-muted block text-sm">
-                      {p.reviews.length} review{p.reviews.length === 1 ? "" : "s"}
-                    </span>
-                  </span>
-                </p>
-                <ul className="mt-4 space-y-1.5 text-sm">
-                  {distribution.map((d) => (
-                    <li key={d.n} className="flex items-center gap-2">
-                      <span className="w-3">{d.n}</span>
-                      <span className="h-2 flex-1 overflow-hidden rounded-full bg-sand-dark">
-                        <span className="block h-full rounded-full bg-wattle" style={{ width: `${(d.count / p.reviews.length) * 100}%` }} />
-                      </span>
-                      <span className="text-muted w-4 text-right">{d.count}</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
+              <p className="mt-3 flex items-center gap-3 text-[14px]">
+                <Stars rating={rating} size={14} />
+                {rating.toFixed(1)} from {p.reviews.length} review{p.reviews.length === 1 ? "" : "s"}
+              </p>
             ) : (
-              <p className="text-muted mt-4">No reviews yet — be the first to tell everyone what you think.</p>
+              <p className="mt-3 text-grey">No reviews yet.</p>
             )}
             <div className="mt-6">
               <ReviewForm productId={p.id} />
             </div>
           </div>
-
-          <ul className="divide-y divide-line">
+          <ul className="divide-y divide-line border-t border-line lg:border-t-0">
             {p.reviews.map((r) => (
-              <li key={r.id} className="py-6 first:pt-0">
-                <div className="flex flex-wrap items-center justify-between gap-2">
+              <li key={r.id} className="py-6 lg:first:pt-0">
+                <div className="flex items-center justify-between gap-3">
                   <Stars rating={r.rating} />
-                  <time className="text-muted text-sm" dateTime={r.createdAt.toISOString()}>
-                    {r.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}
+                  <time className="text-[13px] text-grey" dateTime={r.createdAt.toISOString()}>
+                    {r.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
                   </time>
                 </div>
-                <h3 className="mt-2 font-sans text-lg font-semibold">{r.title}</h3>
-                <p className="mt-1 text-[#463f39]">{r.body}</p>
-                <p className="text-muted mt-2 text-sm">
-                  <span className="font-semibold text-ink">{r.name}</span>
-                  {r.location && ` · ${r.location}`}
+                <h3 className="mt-3 text-[15px] font-medium">{r.title}</h3>
+                <p className="mt-1 text-[#3b3a38]">{r.body}</p>
+                <p className="mt-2 text-[13px] text-grey">
+                  {r.name}
+                  {r.location && `, ${r.location}`}
                 </p>
               </li>
             ))}
@@ -217,8 +169,8 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
       </section>
 
       {related.length > 0 && (
-        <section className="mt-16 border-t border-line pt-12">
-          <h2 className="mb-8 text-2xl sm:text-3xl">You might also love</h2>
+        <section className="mt-20">
+          <h2 className="mb-7 text-2xl">You may also like</h2>
           <ProductGrid products={related} />
         </section>
       )}
@@ -226,14 +178,16 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
   );
 }
 
-function Accordion({ title, children, open }: { title: string; children: React.ReactNode; open?: boolean }) {
+function Section({ title, children, open }: { title: string; children: React.ReactNode; open?: boolean }) {
   return (
-    <details className="group px-5" open={open}>
-      <summary className="flex cursor-pointer list-none items-center justify-between py-4 font-semibold [&::-webkit-details-marker]:hidden">
+    <details className="group border-b border-line" open={open}>
+      <summary className="flex cursor-pointer list-none items-center justify-between py-4 text-[14px] [&::-webkit-details-marker]:hidden">
         {title}
-        <ChevronDown size={18} className="transition group-open:rotate-180" aria-hidden />
+        <span className="text-lg leading-none transition group-open:rotate-45" aria-hidden>
+          +
+        </span>
       </summary>
-      <div className="pb-5 text-[#463f39]">{children}</div>
+      <div className="pb-5 text-[14px] text-grey">{children}</div>
     </details>
   );
 }

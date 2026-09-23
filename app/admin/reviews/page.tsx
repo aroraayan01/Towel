@@ -22,7 +22,7 @@ export default async function AdminReviewsPage() {
         {pending.map((r) => (
           <ReviewCard key={r.id} r={r} pending />
         ))}
-        {!pending.length && <p className="text-muted">All caught up.</p>}
+        {!pending.length && <p className="text-grey">All caught up.</p>}
       </div>
       <h2 className="mt-10 mb-3 text-xl">Recently published</h2>
       <div className="space-y-4">
@@ -45,15 +45,15 @@ function ReviewCard({
     <article className={card}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Stars rating={r.rating} />
-        <span className="text-muted text-xs">{r.product.name} · {r.createdAt.toLocaleDateString("en-AU")}</span>
+        <span className="text-grey text-xs">{r.product.name} · {r.createdAt.toLocaleDateString("en-AU")}</span>
       </div>
       <h3 className="mt-2 font-sans font-semibold">{r.title}</h3>
       <p className="mt-1 text-sm text-[#463f39]">{r.body}</p>
-      <p className="text-muted mt-1 text-xs">{r.name}{r.location && `, ${r.location}`}</p>
+      <p className="text-grey mt-1 text-xs">{r.name}{r.location && `, ${r.location}`}</p>
       <form action={moderateReview} className="mt-3 flex gap-2">
         <input type="hidden" name="id" value={r.id} />
-        {pending && <button name="action" value="approve" className="btn btn-primary px-4 py-1.5 text-sm">Publish</button>}
-        <button name="action" value="delete" className="btn btn-outline px-4 py-1.5 text-sm">Delete</button>
+        {pending && <button name="action" value="approve" className="btn btn-dark h-9 px-4 text-[12px]">Publish</button>}
+        <button name="action" value="delete" className="btn btn-line h-9 px-4 text-[12px]">Delete</button>
       </form>
     </article>
   );

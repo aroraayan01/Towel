@@ -16,11 +16,11 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
 
   return (
     <>
-      <Link href="/admin/orders" className="text-muted text-sm hover:underline">← Orders</Link>
+      <Link href="/admin/orders" className="text-grey text-sm hover:underline">← Orders</Link>
       <div className="mt-2 mb-6 flex flex-wrap items-center gap-3">
         <h1 className="text-3xl">{o.number}</h1>
         <StatusBadge status={o.status} />
-        <span className="text-muted text-sm">
+        <span className="text-grey text-sm">
           Placed {o.createdAt.toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}
           {o.paidAt && ` · paid ${o.paidAt.toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}`}
         </span>
@@ -35,9 +35,9 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
                 <li key={i.id} className="flex justify-between gap-4 py-3">
                   <span>
                     <span className="font-semibold">{i.quantity} × {i.name}</span>
-                    <span className="text-muted block text-sm">{i.variantLabel}</span>
+                    <span className="text-grey block text-sm">{i.variantLabel}</span>
                     {i.monogram && (
-                      <span className="mt-1 inline-block rounded bg-wattle-light px-2 py-0.5 text-sm font-bold tracking-[0.2em]">
+                      <span className="mt-1 inline-block rounded bg-[#f6eed8] px-2 py-0.5 text-sm font-bold tracking-[0.2em]">
                         MONOGRAM: {i.monogram}
                       </span>
                     )}
@@ -57,13 +57,13 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
           </section>
 
           {(o.giftMessage || o.giftWrapCents > 0) && (
-            <section className={`${card} bg-wattle-light`}>
+            <section className={`${card} bg-[#f6eed8]`}>
               <h2 className="mb-2 text-xl">Gift</h2>
-              {o.giftWrapCents > 0 && <p className="font-semibold">🎁 Gift wrap this order. Don&apos;t include the invoice.</p>}
+              {o.giftWrapCents > 0 && <p className="font-semibold">Gift wrap this order. Don&apos;t include the invoice.</p>}
               {o.giftMessage && (
                 <>
-                  <p className="text-muted mt-2 text-sm">Write this card by hand:</p>
-                  <p className="mt-1 rounded-xl bg-white p-4 font-hand text-2xl">{o.giftMessage}</p>
+                  <p className="text-grey mt-2 text-sm">Write this card by hand:</p>
+                  <p className="mt-1 bg-white p-4 text-2xl">{o.giftMessage}</p>
                 </>
               )}
             </section>
@@ -76,27 +76,27 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
             <form action={updateOrder} className="space-y-4">
               <input type="hidden" name="id" value={o.id} />
               <div>
-                <label htmlFor="status" className="label">Status</label>
-                <select id="status" name="status" defaultValue={o.status} className="field">
+                <label htmlFor="status" className="field-label">Status</label>
+                <select id="status" name="status" defaultValue={o.status} className="input">
                   {ORDER_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="trackingNumber" className="label">Tracking number</label>
-                <input id="trackingNumber" name="trackingNumber" defaultValue={o.trackingNumber ?? ""} className="field" />
+                <label htmlFor="trackingNumber" className="field-label">Tracking number</label>
+                <input id="trackingNumber" name="trackingNumber" defaultValue={o.trackingNumber ?? ""} className="input" />
               </div>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" name="notify" defaultChecked className="size-4" />
                 Email the customer when marked as shipped
               </label>
               <div>
-                <label htmlFor="notes" className="label">Internal notes</label>
-                <textarea id="notes" name="notes" rows={3} defaultValue={o.notes ?? ""} className="field" />
+                <label htmlFor="notes" className="field-label">Internal notes</label>
+                <textarea id="notes" name="notes" rows={3} defaultValue={o.notes ?? ""} className="input" />
               </div>
-              <button className="btn btn-primary w-full">Save</button>
+              <button className="btn btn-dark w-full">Save</button>
             </form>
-            <p className="text-muted mt-3 text-xs">
-              Refunds are issued from the Stripe dashboard{o.stripeSessionId ? "" : " (this order has no Stripe session — demo mode)"}. Mark the order Refunded here afterwards.
+            <p className="text-grey mt-3 text-xs">
+              Refunds are issued from the Stripe dashboard{o.stripeSessionId ? "" : " (this is a test-mode order with no Stripe payment)"}. Mark the order Refunded here afterwards.
             </p>
           </section>
 
@@ -105,7 +105,7 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
             <p>{o.firstName} {o.lastName}</p>
             <p><a href={`mailto:${o.email}?subject=Your order ${o.number}`} className="underline">{o.email}</a></p>
             {o.phone && <p><a href={`tel:${o.phone}`} className="underline">{o.phone}</a></p>}
-            <p className="text-muted mt-1">{o.marketingOptIn ? "Opted in to marketing" : "No marketing"}</p>
+            <p className="text-grey mt-1">{o.marketingOptIn ? "Opted in to marketing" : "No marketing"}</p>
             <h3 className="mt-4 mb-1 font-sans font-semibold">Ship to</h3>
             <p className="whitespace-pre-line">
               {`${o.firstName} ${o.lastName}\n${o.address1}${o.address2 ? `\n${o.address2}` : ""}\n${o.suburb} ${o.state} ${o.postcode}`}
@@ -120,7 +120,7 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
 function Line({ label, v, bold }: { label: string; v: number; bold?: boolean }) {
   return (
     <div className={`flex justify-between ${bold ? "text-base font-semibold" : ""}`}>
-      <dt className={bold ? "" : "text-muted"}>{label}</dt>
+      <dt className={bold ? "" : "text-grey"}>{label}</dt>
       <dd className="tabular-nums">{v < 0 ? `−${formatMoney(-v)}` : formatMoney(v)}</dd>
     </div>
   );

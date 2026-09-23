@@ -15,10 +15,10 @@ export function WishlistButton({ slug, name, className = "" }: { slug: string; n
         toggleWish(slug);
       }}
       aria-pressed={saved}
-      aria-label={saved ? `Remove ${name} from wishlist` : `Save ${name} to wishlist`}
-      className={`grid size-10 place-items-center rounded-full bg-white/90 shadow-sm transition hover:scale-105 ${className}`}
+      aria-label={saved ? `Remove ${name} from wishlist` : `Add ${name} to wishlist`}
+      className={`grid size-9 place-items-center transition ${saved ? "!opacity-100" : ""} ${className}`}
     >
-      <Heart size={18} className={saved ? "text-clay" : "text-ink"} fill={saved ? "currentColor" : "none"} />
+      <Heart size={18} strokeWidth={1.5} fill={saved ? "currentColor" : "none"} />
     </button>
   );
 }

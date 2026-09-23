@@ -16,18 +16,18 @@ export default async function AdminMessagesPage() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-semibold">
                 {m.name} · <a href={`mailto:${m.email}?subject=Re: your message to us`} className="underline">{m.email}</a>
-                {m.orderRef && <span className="ml-2 rounded bg-sand px-2 text-xs">Order {m.orderRef}</span>}
+                {m.orderRef && <span className="ml-2 rounded bg-bone px-2 text-xs">Order {m.orderRef}</span>}
               </p>
-              <span className="text-muted text-xs">{m.createdAt.toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</span>
+              <span className="text-grey text-xs">{m.createdAt.toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</span>
             </div>
             <p className="mt-2 text-sm whitespace-pre-wrap">{m.message}</p>
             <form action={markMessage} className="mt-3">
               <input type="hidden" name="id" value={m.id} />
-              <button className="btn btn-outline px-4 py-1.5 text-sm">{m.handled ? "Mark as open" : "Mark as done"}</button>
+              <button className="btn btn-line h-9 px-4 text-[12px]">{m.handled ? "Mark as open" : "Mark as done"}</button>
             </form>
           </article>
         ))}
-        {!messages.length && <p className="text-muted">No messages yet.</p>}
+        {!messages.length && <p className="text-grey">No messages yet.</p>}
       </div>
     </>
   );

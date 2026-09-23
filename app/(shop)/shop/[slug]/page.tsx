@@ -21,7 +21,7 @@ export default async function CollectionPage({ params, searchParams }: PageProps
 
   if (isCategory(slug)) {
     const c = CATEGORIES[slug];
-    return <ShopListing title={c.name} intro={c.blurb} eyebrow="Shop" category={slug} searchParams={sp} basePath={`/shop/${slug}`} />;
+    return <ShopListing title={c.name} intro={c.blurb} category={slug} searchParams={sp} basePath={`/shop/${slug}`} />;
   }
   const col = collectionBySlug(slug);
   if (!col) notFound();
@@ -29,7 +29,6 @@ export default async function CollectionPage({ params, searchParams }: PageProps
     <ShopListing
       title={col.name}
       intro={col.blurb}
-      eyebrow={CATEGORIES[col.category].name}
       category={col.category}
       collection={col.slug}
       searchParams={sp}

@@ -36,7 +36,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
         ))}
         <form className="ml-auto">
           {s && <input type="hidden" name="status" value={s} />}
-          <input name="q" defaultValue={query} placeholder="Order #, email or surname" className="field py-1.5" />
+          <input name="q" defaultValue={query} placeholder="Order #, email or surname" className="input py-1.5" />
         </form>
       </div>
       <div className={`${card} overflow-x-auto p-0`}>
@@ -49,16 +49,16 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
               <tr key={o.id}>
                 <td>
                   <Link href={`/admin/orders/${o.number}`} className="font-semibold underline">{o.number}</Link>
-                  {o.giftMessage && <span className="ml-1" title="Has a handwritten note">✍️</span>}
+                  {o.giftMessage && <span className="ml-2 text-[11px] text-grey">GIFT NOTE</span>}
                 </td>
                 <td className="whitespace-nowrap">{o.createdAt.toLocaleDateString("en-AU")}</td>
-                <td>{o.firstName} {o.lastName}<span className="text-muted block text-xs">{o.email}</span></td>
+                <td>{o.firstName} {o.lastName}<span className="text-grey block text-xs">{o.email}</span></td>
                 <td>{o.suburb} {o.state}</td>
                 <td><StatusBadge status={o.status} /></td>
-                <td className="text-right tabular-nums">{formatMoney(o.totalCents)}<span className="text-muted block text-xs">{o._count.items} line{o._count.items === 1 ? "" : "s"}</span></td>
+                <td className="text-right tabular-nums">{formatMoney(o.totalCents)}<span className="text-grey block text-xs">{o._count.items} line{o._count.items === 1 ? "" : "s"}</span></td>
               </tr>
             ))}
-            {!orders.length && <tr><td colSpan={6} className="text-muted py-10 text-center">No orders match.</td></tr>}
+            {!orders.length && <tr><td colSpan={6} className="text-grey py-10 text-center">No orders match.</td></tr>}
           </tbody>
         </table>
       </div>

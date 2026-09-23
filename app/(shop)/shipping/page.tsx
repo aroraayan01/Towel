@@ -7,7 +7,7 @@ import { shippingQuote } from "@/lib/shipping";
 import { store } from "@/lib/store";
 
 export const metadata: Metadata = {
-  title: "Shipping & delivery",
+  title: "Delivery",
   description: `Delivery costs and timeframes across Australia. Free standard shipping on orders over ${formatPrice(store.commerce.freeShippingThresholdCents)}.`,
   alternates: { canonical: "/shipping" },
 };
@@ -20,7 +20,7 @@ const ZONES = [
 
 export default function ShippingPage() {
   return (
-    <PolicyPage title="Shipping & delivery" intro="We deliver Australia-wide from our warehouse, tracked all the way to your door.">
+    <PolicyPage title="Delivery" intro="Tracked delivery Australia-wide.">
       <h2>Delivery costs &amp; timeframes</h2>
       <p>
         Standard delivery is <strong>free on orders over {formatPrice(store.commerce.freeShippingThresholdCents)}</strong> (after
@@ -68,7 +68,7 @@ export default function ShippingPage() {
       </p>
 
       <h2>PO Boxes &amp; parcel lockers</h2>
-      <p>Towels and bath mats can go to PO Boxes and Parcel Lockers. Rugs are too big — please use a street address.</p>
+      <p>Towels and bath mats can go to PO Boxes and Parcel Lockers. Rugs are too big, so please use a street address.</p>
 
       <h2>International</h2>
       <p>We only ship within Australia at the moment.</p>

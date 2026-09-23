@@ -9,17 +9,17 @@ export function LoginForm() {
   return (
     <form action={action} className="mt-4 space-y-4">
       <div>
-        <label htmlFor="password" className="label">
+        <label htmlFor="password" className="field-label">
           Password
         </label>
-        <input id="password" name="password" type="password" required autoComplete="current-password" className="field" autoFocus />
+        <input id="password" name="password" type="password" required autoComplete="current-password" className="input" autoFocus />
       </div>
       {error && (
-        <p className="text-sm text-clay" role="alert">
+        <p className="text-sm text-sale" role="alert">
           {error}
         </p>
       )}
-      <button className="btn btn-primary w-full" disabled={pending}>
+      <button className="btn btn-dark w-full" disabled={pending}>
         {pending ? "Checking…" : "Log in"}
       </button>
     </form>

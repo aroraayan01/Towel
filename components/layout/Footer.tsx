@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { NewsletterForm } from "@/components/forms/NewsletterForm";
 import { store } from "@/lib/store";
-import { Logo } from "./Logo";
+import { Wordmark } from "./Logo";
 
 const COLUMNS = [
   {
@@ -11,7 +11,7 @@ const COLUMNS = [
       ["Bath towels", "/shop/bath-towels"],
       ["Beach towels", "/shop/beach-towels"],
       ["Hand towels", "/shop/hand-towels"],
-      ["Area rugs", "/shop/area-rugs"],
+      ["Rugs", "/shop/area-rugs"],
       ["Runners", "/shop/runners"],
       ["Bath mats", "/shop/bath-mats"],
     ],
@@ -19,92 +19,73 @@ const COLUMNS = [
   {
     title: "Help",
     links: [
-      ["Shipping & delivery", "/shipping"],
-      ["Returns & exchanges", "/returns"],
+      ["Delivery", "/shipping"],
+      ["Returns", "/returns"],
       ["Track an order", "/order-status"],
       ["Care guide", "/care-guide"],
-      ["FAQs", "/faq"],
-      ["Contact us", "/contact"],
+      ["FAQ", "/faq"],
+      ["Contact", "/contact"],
     ],
   },
   {
-    title: "About",
+    title: store.name,
     links: [
-      ["Our story", "/about"],
-      ["Wishlist", "/wishlist"],
-      ["Privacy policy", "/privacy"],
-      ["Terms & conditions", "/terms"],
+      ["About", "/about"],
+      ["Instagram", `https://instagram.com/${store.instagram}`],
+      ["Privacy", "/privacy"],
+      ["Terms", "/terms"],
     ],
   },
 ] as const;
 
-const PAYMENTS = ["Visa", "Mastercard", "Amex", "Apple Pay", "Google Pay", ...(store.commerce.afterpay.enabled ? ["Afterpay"] : [])];
-
 export function Footer() {
   return (
-    <footer className="mt-auto bg-gum-dark text-cream">
-      <div className="container-page grid gap-12 py-14 lg:grid-cols-[1.3fr_2fr]">
+    <footer className="mt-auto border-t border-line">
+      <div className="page-x grid gap-12 py-14 lg:grid-cols-[1fr_1.4fr] lg:gap-24">
         <div className="max-w-md">
-          <Logo light />
-          <p className="mt-4 text-white/75">{store.description}</p>
-          <h2 className="mt-8 font-serif text-xl">Join the family</h2>
-          <p className="mt-1 mb-4 text-sm text-white/75">New colours, restocks and the odd beach-day giveaway.</p>
-          <NewsletterForm dark />
+          <h2 className="text-xl">10% off your first order</h2>
+          <p className="mt-2 mb-5 text-grey">Join the mailing list for new colours and restocks. We email about once a month.</p>
+          <NewsletterForm />
         </div>
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
           {COLUMNS.map((col) => (
             <div key={col.title}>
-              <h2 className="mb-4 text-sm font-bold tracking-widest uppercase text-wattle">{col.title}</h2>
-              <ul className="space-y-2.5 text-white/80">
+              <h2 className="caps mb-4 text-grey">{col.title}</h2>
+              <ul className="space-y-2 text-[14px]">
                 {col.links.map(([label, href]) => (
                   <li key={href}>
-                    <Link href={href} className="hover:text-white hover:underline underline-offset-4">
-                      {label}
-                    </Link>
+                    {href.startsWith("http") ? (
+                      <a href={href} target="_blank" rel="noopener noreferrer" className="hover-line">
+                        {label}
+                      </a>
+                    ) : (
+                      <Link href={href} className="hover-line">
+                        {label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
             </div>
           ))}
-          <div className="col-span-2 sm:col-span-3">
-            <h2 className="mb-3 text-sm font-bold tracking-widest uppercase text-wattle">Say g&apos;day</h2>
-            <p className="text-white/80">
-              <a href={`mailto:${store.email}`} className="hover:underline">{store.email}</a>
-              {" · "}
-              <a href={store.phoneHref} className="hover:underline">{store.phone}</a>
-              {" · "}
-              {store.hours}
-            </p>
-            <p className="mt-3 flex gap-4 text-sm text-white/80">
-              <a href={store.social.instagram} target="_blank" rel="noopener noreferrer" className="hover:underline">Instagram</a>
-              <a href={store.social.facebook} target="_blank" rel="noopener noreferrer" className="hover:underline">Facebook</a>
-              <a href={store.social.pinterest} target="_blank" rel="noopener noreferrer" className="hover:underline">Pinterest</a>
+        </div>
+      </div>
+
+      <div className="page-x border-t border-line py-8">
+        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <Wordmark />
+            <p className="mt-4 max-w-2xl text-[13px] text-grey">
+              We acknowledge the Traditional Custodians of the land on which we work, {store.traditionalCustodians}, and pay our
+              respects to Elders past and present.
             </p>
           </div>
-        </div>
-      </div>
-
-      <div className="border-t border-white/10">
-        <div className="container-page py-8">
-          <p className="max-w-3xl text-sm leading-relaxed text-white/70">
-            We acknowledge the Traditional Custodians of the lands on which we live and work, and pay our respects to
-            Elders past and present. Always was, always will be, Aboriginal land.
-          </p>
-        </div>
-      </div>
-
-      <div className="border-t border-white/10">
-        <div className="container-page flex flex-col gap-4 py-6 text-xs text-white/60 md:flex-row md:items-center md:justify-between">
-          <p>
-            © {new Date().getFullYear()} {store.legalName} · ABN {store.abn} · Proudly Australian owned · All prices in AUD and include GST
-          </p>
-          <ul className="flex flex-wrap gap-2" aria-label="Accepted payment methods">
-            {PAYMENTS.map((p) => (
-              <li key={p} className="rounded border border-white/20 px-2 py-1 font-semibold text-white/80">
-                {p}
-              </li>
-            ))}
-          </ul>
+          <div className="text-[12px] text-grey md:text-right">
+            <p>Visa · Mastercard · Amex · Apple Pay · Google Pay{store.commerce.afterpay.enabled && " · Afterpay"}</p>
+            <p className="mt-1">
+              © {new Date().getFullYear()} {store.legalName} · ABN {store.abn} · Prices in AUD incl. GST
+            </p>
+          </div>
         </div>
       </div>
     </footer>

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function ReturnsPage() {
   const days = store.commerce.returnDays;
   return (
-    <PolicyPage title="Returns & exchanges" intro={`Not quite right? No worries. You've got ${days} days to change your mind.`} updated="23 September 2026">
+    <PolicyPage title="Returns" intro={`${days} days to change your mind, and faulty items are always covered.`} updated="23 September 2026">
       <h2>Change-of-mind returns</h2>
       <p>
         If you change your mind, you can return items within <strong>{days} days of delivery</strong> for a refund to your

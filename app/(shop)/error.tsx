@@ -11,20 +11,21 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
   }, [error]);
 
   return (
-    <div className="container-page max-w-2xl py-24 text-center">
-      <p className="font-hand text-3xl text-gum">Well, that&apos;s not right.</p>
-      <h1 className="mt-2 text-4xl">Something went wrong on our end</h1>
-      <p className="text-muted mt-4">
-        Sorry about that. Please try again — and if it keeps happening, email us at{" "}
-        <a href={`mailto:${store.email}`} className="underline">{store.email}</a>
-        {error.digest && ` and mention code ${error.digest}`}.
+    <div className="page-x py-24 md:py-32">
+      <h1 className="wide text-3xl md:text-4xl">Something went wrong</h1>
+      <p className="mt-4 max-w-md text-grey">
+        Please try again. If it keeps happening, email{" "}
+        <a href={`mailto:${store.email}`} className="link">
+          {store.email}
+        </a>
+        {error.digest && ` and quote reference ${error.digest}`}.
       </p>
-      <div className="mt-8 flex justify-center gap-3">
-        <button onClick={reset} className="btn btn-primary">
+      <div className="mt-8 flex gap-3">
+        <button onClick={reset} className="btn btn-dark">
           Try again
         </button>
-        <Link href="/" className="btn btn-outline">
-          Back home
+        <Link href="/" className="btn btn-line">
+          Home
         </Link>
       </div>
     </div>

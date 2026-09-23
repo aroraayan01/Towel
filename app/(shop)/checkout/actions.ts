@@ -248,7 +248,7 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
   } catch (err) {
     console.error("[checkout] Stripe session failed", err);
     await prisma.order.update({ where: { id: order.id }, data: { status: "CANCELLED", notes: "Stripe session creation failed" } });
-    return { error: "We couldn't reach our payment provider. You haven't been charged — please try again in a moment." };
+    return { error: "We couldn't reach our payment provider. You haven't been charged. Please try again in a moment." };
   }
 
   if (!url) return { error: "We couldn't start payment. Please try again." };
@@ -256,6 +256,6 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
 }
 
 export async function previewDiscount(code: string, email: string, subtotalCents: number) {
-  if (await rateLimited("discount", 15, 10 * 60_000)) return { ok: false as const, message: "Too many attempts — try again shortly." };
+  if (await rateLimited("discount", 15, 10 * 60_000)) return { ok: false as const, message: "Too many attempts. Try again shortly." };
   return checkDiscount(code, email, subtotalCents);
 }

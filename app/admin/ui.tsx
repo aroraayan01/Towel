@@ -1,13 +1,13 @@
 import { STATUS_LABEL, type OrderStatus } from "@/lib/orders";
 
 const COLOURS: Record<OrderStatus, string> = {
-  PENDING: "bg-sand text-muted",
-  PAID: "bg-wattle-light text-[#7a5a00]",
+  PENDING: "bg-bone text-grey",
+  PAID: "bg-[#f6eed8] text-[#7a5a00]",
   PACKED: "bg-[#e3ecf5] text-[#2d5277]",
-  SHIPPED: "bg-gum-light text-gum-dark",
-  DELIVERED: "bg-gum text-white",
-  CANCELLED: "bg-sand-dark text-muted",
-  REFUNDED: "bg-clay/15 text-clay",
+  SHIPPED: "bg-bone text-ink",
+  DELIVERED: "bg-ink text-white",
+  CANCELLED: "bg-stone text-grey",
+  REFUNDED: "bg-sale/10 text-sale",
 };
 
 export function StatusBadge({ status }: { status: string }) {
@@ -19,10 +19,10 @@ export function AdminTitle({ title, sub }: { title: string; sub?: string }) {
   return (
     <div className="mb-6">
       <h1 className="text-3xl">{title}</h1>
-      {sub && <p className="text-muted mt-1">{sub}</p>}
+      {sub && <p className="text-grey mt-1">{sub}</p>}
     </div>
   );
 }
 
-export const card = "rounded-2xl bg-white p-5 shadow-sm ring-1 ring-line";
-export const table = "w-full text-left text-sm [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-muted [&_td]:px-3 [&_td]:py-2.5 [&_tbody_tr]:border-t [&_tbody_tr]:border-line";
+export const card = " bg-white p-5 border border-line";
+export const table = "w-full text-left text-sm [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-grey [&_td]:px-3 [&_td]:py-2.5 [&_tbody_tr]:border-t [&_tbody_tr]:border-line";

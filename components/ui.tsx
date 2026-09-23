@@ -1,48 +1,44 @@
-import { Minus, Plus, Star, Truck } from "lucide-react";
+import Link from "next/link";
 
 import { formatMoney, formatPrice } from "@/lib/money";
 import { store } from "@/lib/store";
 
-export function Stars({ rating, size = 14, className = "" }: { rating: number; size?: number; className?: string }) {
+export function Stars({ rating, size = 12, className = "" }: { rating: number; size?: number; className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-0.5 ${className}`} aria-label={`${rating.toFixed(1)} out of 5 stars`}>
+    <span className={`inline-flex gap-px ${className}`} aria-label={`Rated ${rating.toFixed(1)} out of 5`}>
       {[1, 2, 3, 4, 5].map((i) => {
         const fill = Math.max(0, Math.min(1, rating - (i - 1)));
         return (
-          <span key={i} className="relative inline-block" style={{ width: size, height: size }} aria-hidden>
-            <Star size={size} className="absolute inset-0 text-sand-dark" fill="currentColor" strokeWidth={0} />
-            <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
-              <Star size={size} className="text-wattle" fill="currentColor" strokeWidth={0} />
-            </span>
-          </span>
+          <svg key={i} viewBox="0 0 20 20" width={size} height={size} aria-hidden>
+            <defs>
+              <linearGradient id={`s${i}-${Math.round(fill * 100)}`}>
+                <stop offset={fill} stopColor="currentColor" />
+                <stop offset={fill} stopColor="#d6d3cd" />
+              </linearGradient>
+            </defs>
+            <path
+              fill={`url(#s${i}-${Math.round(fill * 100)})`}
+              d="M10 1.5l2.6 5.5 6 .7-4.4 4.1 1.2 5.9L10 14.8l-5.4 2.9 1.2-5.9L1.4 7.7l6-.7z"
+            />
+          </svg>
         );
       })}
     </span>
   );
 }
 
-export function PriceTag({
-  cents,
-  compareAt,
-  from,
-  className = "",
-}: {
-  cents: number;
-  compareAt?: number | null;
-  from?: boolean;
-  className?: string;
-}) {
-  const onSale = compareAt && compareAt > cents;
+export function PriceTag({ cents, compareAt, from, className = "" }: { cents: number; compareAt?: number | null; from?: boolean; className?: string }) {
+  const onSale = !!compareAt && compareAt > cents;
   return (
     <span className={`inline-flex items-baseline gap-2 ${className}`}>
-      <span className={onSale ? "text-clay" : ""}>
-        {from && <span className="text-muted text-[0.85em] font-normal">From </span>}
+      <span className={onSale ? "text-sale" : ""}>
+        {from && "From "}
         {formatPrice(cents)}
       </span>
       {onSale && (
-        <s className="text-muted text-[0.85em] font-normal">
+        <s className="text-grey">
           <span className="sr-only">was </span>
-          {formatPrice(compareAt!)}
+          {formatPrice(compareAt)}
         </s>
       )}
     </span>
@@ -53,21 +49,25 @@ export function FreeShippingBar({ remaining }: { remaining: number }) {
   const threshold = store.commerce.freeShippingThresholdCents;
   const pct = Math.min(100, ((threshold - remaining) / threshold) * 100);
   return (
-    <div className="rounded-xl bg-sand px-4 py-3 text-sm">
-      <p className="flex items-center gap-2">
-        <Truck size={16} className="text-gum shrink-0" aria-hidden />
+    <div className="text-[13px]">
+      <p>
         {remaining > 0 ? (
-          <span>
-            You&apos;re <strong>{formatMoney(remaining)}</strong> away from free standard shipping
-          </span>
+          <>
+            Spend {formatMoney(remaining)} more for free delivery
+          </>
         ) : (
-          <span>
-            <strong>Woohoo — free standard shipping</strong> is on us
-          </span>
+          "Your order qualifies for free standard delivery"
         )}
       </p>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sand-dark" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label="Progress to free shipping">
-        <div className="h-full rounded-full bg-gum transition-all duration-500" style={{ width: `${pct}%` }} />
+      <div
+        className="mt-2 h-[3px] bg-stone"
+        role="progressbar"
+        aria-valuenow={Math.round(pct)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Progress to free delivery"
+      >
+        <div className="h-full bg-ink transition-[width] duration-500" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -78,32 +78,31 @@ export function QtyStepper({
   onChange,
   max = 20,
   label,
-  size = "md",
+  small,
 }: {
   value: number;
   onChange: (n: number) => void;
   max?: number;
   label: string;
-  size?: "sm" | "md";
+  small?: boolean;
 }) {
-  const h = size === "sm" ? "h-8" : "h-11";
-  const w = size === "sm" ? "w-8" : "w-10";
+  const h = small ? "h-9" : "h-12";
   return (
-    <div className={`inline-flex items-center rounded-full border border-line bg-white ${h}`} role="group" aria-label={label}>
-      <button type="button" className={`${w} grid h-full place-items-center rounded-full hover:bg-sand`} onClick={() => onChange(value - 1)} aria-label="Decrease quantity">
-        <Minus size={14} />
+    <div className={`inline-flex items-center border border-line ${h}`} role="group" aria-label={label}>
+      <button type="button" className="grid h-full w-9 place-items-center text-lg hover:bg-bone" onClick={() => onChange(value - 1)} aria-label="Decrease quantity">
+        −
       </button>
-      <span className="min-w-6 text-center text-sm font-semibold tabular-nums" aria-live="polite">
+      <span className="min-w-7 text-center text-sm tabular-nums" aria-live="polite">
         {value}
       </span>
       <button
         type="button"
-        className={`${w} grid h-full place-items-center rounded-full hover:bg-sand disabled:opacity-40`}
+        className="grid h-full w-9 place-items-center text-lg hover:bg-bone disabled:opacity-30"
         onClick={() => onChange(value + 1)}
         disabled={value >= max}
         aria-label="Increase quantity"
       >
-        <Plus size={14} />
+        +
       </button>
     </div>
   );
@@ -111,15 +110,15 @@ export function QtyStepper({
 
 export function Breadcrumbs({ items }: { items: { href?: string; label: string }[] }) {
   return (
-    <nav aria-label="Breadcrumb" className="text-muted text-sm">
+    <nav aria-label="Breadcrumb" className="text-[13px] text-grey">
       <ol className="flex flex-wrap items-center gap-1.5">
         {items.map((it, i) => (
           <li key={i} className="flex items-center gap-1.5">
             {i > 0 && <span aria-hidden>/</span>}
             {it.href ? (
-              <a href={it.href} className="hover:text-ink hover:underline underline-offset-4">
+              <Link href={it.href} className="hover:text-ink">
                 {it.label}
-              </a>
+              </Link>
             ) : (
               <span aria-current="page" className="text-ink">
                 {it.label}
@@ -132,14 +131,12 @@ export function Breadcrumbs({ items }: { items: { href?: string; label: string }
   );
 }
 
-export function PageHeader({ eyebrow, title, intro }: { eyebrow?: string; title: string; intro?: string }) {
+export function PageTitle({ title, intro, crumbs }: { title: string; intro?: string; crumbs?: { href?: string; label: string }[] }) {
   return (
-    <header className="border-b border-line bg-sand/60">
-      <div className="container-page py-12 sm:py-16">
-        {eyebrow && <p className="eyebrow mb-3">{eyebrow}</p>}
-        <h1 className="text-4xl sm:text-5xl">{title}</h1>
-        {intro && <p className="text-muted mt-4 max-w-2xl text-lg">{intro}</p>}
-      </div>
+    <header className="page-x pt-8 pb-8 md:pt-12 md:pb-10">
+      {crumbs && <Breadcrumbs items={crumbs} />}
+      <h1 className="wide mt-4 text-3xl md:text-5xl">{title}</h1>
+      {intro && <p className="mt-4 max-w-xl text-grey">{intro}</p>}
     </header>
   );
 }

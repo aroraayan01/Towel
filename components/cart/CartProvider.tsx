@@ -28,8 +28,8 @@ type CartContext = {
 
 const Ctx = createContext<CartContext | null>(null);
 
-const CART_KEY = "ww.cart.v1";
-const WISH_KEY = "ww.wishlist.v1";
+const CART_KEY = "sb.cart.v1";
+const WISH_KEY = "sb.wishlist.v1";
 
 function read<T>(key: string, fallback: T): T {
   try {

@@ -25,11 +25,10 @@ export function WishlistView() {
 
   if (products.length === 0) {
     return (
-      <div className="rounded-3xl bg-sand px-6 py-16 text-center">
-        <p className="font-serif text-2xl">Nothing saved yet</p>
-        <p className="text-muted mt-2">Your wishlist is saved on this device.</p>
-        <Link href="/shop" className="btn btn-primary mt-6">
-          Browse the shop
+      <div className="border-t border-line py-20 text-center">
+        <p>Nothing saved yet. Tap the heart on a product to save it here.</p>
+        <Link href="/shop" className="btn btn-dark mt-6">
+          Shop all
         </Link>
       </div>
     );

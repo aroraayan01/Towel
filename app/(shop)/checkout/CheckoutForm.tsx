@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Gift, Lock, Tag } from "lucide-react";
 import { useActionState, useMemo, useState, useTransition } from "react";
 
 import { useCart } from "@/components/cart/CartProvider";
-import { TextileArt } from "@/components/TextileArt";
+import { Photo } from "@/components/Photo";
 import { FreeShippingBar } from "@/components/ui";
 import { afterpayInstalment, formatMoney } from "@/lib/money";
 import { lineKey, lineTotalCents, totals } from "@/lib/pricing";
@@ -52,14 +51,13 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
     });
   }
 
-  if (!ready) return <div className="container-page min-h-[50vh] py-16" aria-busy />;
+  if (!ready) return <div className="page-x min-h-[50vh] py-16" aria-busy />;
 
   if (lines.length === 0) {
     return (
-      <div className="container-page py-24 text-center">
-        <h1 className="text-4xl">Your cart is empty</h1>
-        <p className="text-muted mt-3">Pop something in your cart and come back — we&apos;ll be here.</p>
-        <Link href="/shop" className="btn btn-primary mt-8">
+      <div className="page-x py-24 text-center">
+        <h1 className="wide text-3xl">Your cart is empty</h1>
+        <Link href="/shop" className="btn btn-dark mt-8">
           Continue shopping
         </Link>
       </div>
@@ -67,39 +65,37 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
   }
 
   return (
-    <form action={action} className="container-page grid gap-10 py-8 lg:grid-cols-[1fr_26rem] lg:gap-16 lg:py-12" noValidate={false}>
+    <form action={action} className="page-x grid gap-10 py-8 lg:grid-cols-[1fr_420px] lg:gap-20 lg:py-12">
       <input type="hidden" name="cart" value={cartJson} />
       <input type="hidden" name="discountCode" value={applied?.code ?? ""} />
 
       <div className="space-y-10">
         <div>
-          <h1 className="text-3xl sm:text-4xl">Checkout</h1>
-          <p className="text-muted mt-1 flex items-center gap-1.5 text-sm">
-            <Lock size={14} /> Secure checkout. We never see or store your card details.
-          </p>
+          <h1 className="wide text-3xl md:text-4xl">Checkout</h1>
+          <p className="mt-2 text-[13px] text-grey">Payments are processed by Stripe. We never see your card details.</p>
           {cancelled && (
-            <p className="mt-4 rounded-xl bg-wattle-light px-4 py-3 text-sm" role="status">
-              Payment was cancelled and you haven&apos;t been charged. Your cart is still here whenever you&apos;re ready.
+            <p className="mt-4 bg-bone px-4 py-3 text-[14px]" role="status">
+              Payment was cancelled and you haven&apos;t been charged.
             </p>
           )}
           {!paymentsLive && (
-            <p className="mt-4 rounded-xl border border-dashed border-clay/50 bg-white px-4 py-3 text-sm" role="note">
-              <strong>Demo mode:</strong> no payment provider is connected, so orders are created without taking payment. Add
-              <code className="mx-1 rounded bg-sand px-1">STRIPE_SECRET_KEY</code> to go live.
+            <p className="mt-4 border border-sale/40 px-4 py-3 text-[13px] text-sale" role="note">
+              Test mode: no payment provider is connected, so orders go through without payment. Set STRIPE_SECRET_KEY to go
+              live.
             </p>
           )}
         </div>
 
-        <Section n={1} title="Contact">
+        <Section title="Contact">
           <Input name="email" label="Email" type="email" autoComplete="email" required error={err.email} value={email} onChange={(e) => setEmail(e.target.value)} />
-          <label className="mt-3 flex items-center gap-2 text-sm">
-            <input type="checkbox" name="marketingOptIn" className="size-4 accent-[var(--color-gum)]" />
-            Email me about new colours and restocks (no spam, promise)
+          <label className="mt-3 flex items-center gap-2 text-[14px]">
+            <input type="checkbox" name="marketingOptIn" className="size-4 accent-ink" />
+            Email me about new products and restocks
           </label>
         </Section>
 
-        <Section n={2} title="Delivery address">
-          <p className="text-muted -mt-2 mb-4 text-sm">We currently deliver within Australia only.</p>
+        <Section title="Delivery">
+          <p className="-mt-2 mb-4 text-[13px] text-grey">We deliver within Australia only.</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input name="firstName" label="First name" autoComplete="given-name" required error={err.firstName} />
             <Input name="lastName" label="Last name" autoComplete="family-name" required error={err.lastName} />
@@ -112,7 +108,7 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
             <Input name="suburb" label="Suburb" autoComplete="address-level2" required error={err.suburb} />
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="state" className="label">
+                <label htmlFor="state" className="field-label">
                   State
                 </label>
                 <select
@@ -120,7 +116,7 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
                   name="state"
                   required
                   autoComplete="address-level1"
-                  className="field"
+                  className="input"
                   value={region}
                   onChange={(e) => setRegion(e.target.value as StateCode)}
                   aria-invalid={!!err.state}
@@ -154,37 +150,37 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
               />
             </div>
             <div className="sm:col-span-2">
-              <Input name="phone" label="Phone (for the courier, optional)" type="tel" autoComplete="tel" error={err.phone} />
+              <Input name="phone" label="Phone (optional, for the courier)" type="tel" autoComplete="tel" error={err.phone} />
             </div>
           </div>
         </Section>
 
-        <Section n={3} title="Delivery method">
+        <Section title="Delivery method">
           <div className="space-y-2">
             {quotes.map((q) => (
               <label
                 key={q.method}
-                className={`flex cursor-pointer items-center justify-between gap-4 rounded-xl border-2 bg-white px-4 py-3 transition ${method === q.method ? "border-ink" : "border-line hover:border-muted"}`}
+                className={`flex cursor-pointer items-center justify-between gap-4 border px-4 py-3.5 text-[14px] transition ${method === q.method ? "border-ink" : "border-line hover:border-grey"}`}
               >
                 <span className="flex items-center gap-3">
-                  <input type="radio" name="method" value={q.method} checked={method === q.method} onChange={() => setMethod(q.method)} className="size-4 accent-[var(--color-gum)]" />
+                  <input type="radio" name="method" value={q.method} checked={method === q.method} onChange={() => setMethod(q.method)} className="size-4 accent-ink" />
                   <span>
-                    <span className="block font-semibold">{q.label}</span>
-                    <span className="text-muted text-sm">
+                    <span className="block">{q.label}</span>
+                    <span className="text-[13px] text-grey">
                       {q.eta}
-                      {!region && " · choose your state for an exact price"}
+                      {!region && ". Select your state for the exact price."}
                     </span>
                   </span>
                 </span>
-                <span className="font-semibold">{q.free ? "Free" : formatMoney(q.cents)}</span>
+                <span>{q.free ? "Free" : formatMoney(q.cents)}</span>
               </label>
             ))}
           </div>
         </Section>
 
-        <Section n={4} title="Make it personal" icon={<Gift size={18} />}>
-          <label htmlFor="giftMessage" className="label">
-            Add a handwritten note (free)
+        <Section title="Gift options">
+          <label htmlFor="giftMessage" className="field-label">
+            Gift note (free, written by hand on a card)
           </label>
           <textarea
             id="giftMessage"
@@ -193,24 +189,24 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
             maxLength={250}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Happy housewarming! Love, Mum x"
-            className="field font-hand text-xl"
+            placeholder="Your message"
+            className="input"
           />
-          <p className="text-muted mt-1 flex justify-between text-xs">
-            <span>We&apos;ll write it by hand on one of our cards. Prices are never included in the parcel.</span>
+          <p className="mt-1 flex justify-between text-[12px] text-grey">
+            <span>We never include prices in the parcel.</span>
             <span>{note.length}/250</span>
           </p>
-          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-white p-4">
-            <input type="checkbox" name="giftWrap" checked={giftWrap} onChange={(e) => setGiftWrap(e.target.checked)} className="mt-1 size-4 accent-[var(--color-gum)]" />
+          <label className="mt-4 flex cursor-pointer items-start gap-3 text-[14px]">
+            <input type="checkbox" name="giftWrap" checked={giftWrap} onChange={(e) => setGiftWrap(e.target.checked)} className="mt-1 size-4 accent-ink" />
             <span>
-              <span className="font-semibold">Gift wrap it (+{formatMoney(store.commerce.giftWrapCents)})</span>
-              <span className="text-muted block text-sm">Recycled tissue, cotton twine and a sprig of dried gum leaves.</span>
+              Gift wrap (+{formatMoney(store.commerce.giftWrapCents)})
+              <span className="block text-[13px] text-grey">Recycled tissue and cotton twine.</span>
             </span>
           </label>
         </Section>
 
         {state?.error && (
-          <p className="rounded-xl bg-clay/10 px-4 py-3 text-sm font-medium text-clay" role="alert">
+          <p className="border border-sale px-4 py-3 text-[14px] text-sale" role="alert">
             {state.error}
           </p>
         )}
@@ -222,21 +218,21 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
 
       {/* ── Summary ───────────────────────────── */}
       <aside className="lg:sticky lg:top-28 lg:self-start" aria-label="Order summary">
-        <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-line">
-          <h2 className="mb-4 text-xl">Order summary</h2>
+        <div className="bg-bone p-6">
+          <h2 className="mb-2 text-[15px]">Order summary</h2>
           <ul className="divide-y divide-line">
             {lines.map((l) => (
               <li key={lineKey(l)} className="flex gap-3 py-3">
-                <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-sand">
-                  <TextileArt category={l.category} collection={l.collection} pattern={l.pattern} colour={l.colourHex} accent={l.accentHex} imageUrl={l.imageUrl} alt="" />
-                  <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-ink text-[11px] font-bold text-white">{l.quantity}</span>
+                <div className="relative aspect-[4/5] w-14 shrink-0 bg-stone">
+                  <Photo src={l.image} alt="" sizes="56px" />
+                  <span className="absolute -right-2 -top-2 grid size-5 place-items-center rounded-full bg-ink text-[11px] text-white">{l.quantity}</span>
                 </div>
-                <div className="min-w-0 flex-1 text-sm">
-                  <p className="font-semibold">{l.name}</p>
-                  <p className="text-muted">{l.variantLabel}</p>
-                  {l.monogram && <p className="text-gum">Monogram: {l.monogram}</p>}
+                <div className="min-w-0 flex-1 text-[14px]">
+                  <p>{l.name}</p>
+                  <p className="text-[13px] text-grey">{l.variantLabel}</p>
+                  {l.monogram && <p className="text-[13px] text-grey">Monogram: {l.monogram}</p>}
                 </div>
-                <p className="text-sm font-semibold tabular-nums">{formatMoney(lineTotalCents(l))}</p>
+                <p className="text-[14px] tabular-nums">{formatMoney(lineTotalCents(l))}</p>
               </li>
             ))}
           </ul>
@@ -246,7 +242,6 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
               Discount code
             </label>
             <div className="relative flex-1">
-              <Tag size={15} className="text-muted absolute left-3 top-1/2 -translate-y-1/2" aria-hidden />
               <input
                 id="code"
                 value={code}
@@ -258,21 +253,21 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
                   }
                 }}
                 placeholder="Discount code"
-                className="field py-2 pl-9"
+                className="input"
                 aria-invalid={!!err.discountCode}
               />
             </div>
-            <button type="button" onClick={applyCode} disabled={checking || !code} className="btn btn-outline px-4 py-2">
+            <button type="button" onClick={applyCode} disabled={checking || !code} className="btn btn-line px-5">
               {checking ? "…" : "Apply"}
             </button>
           </div>
           {codeMsg && (
-            <p className={`mt-2 text-sm ${applied ? "text-gum" : "text-clay"}`} role="status">
+            <p className={`mt-2 text-[13px] ${applied ? "text-ok" : "text-sale"}`} role="status">
               {codeMsg}
               {applied && (
                 <button
                   type="button"
-                  className="text-muted ml-2 underline"
+                  className="ml-2 text-grey underline"
                   onClick={() => {
                     setApplied(null);
                     setCodeMsg(null);
@@ -285,15 +280,15 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
             </p>
           )}
 
-          <dl className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
+          <dl className="mt-5 space-y-2 border-t border-line pt-4 text-[14px]">
             <Row label="Subtotal" value={formatMoney(t.subtotal)} />
             {t.discount > 0 && <Row label={`Discount (${applied?.code})`} value={`−${formatMoney(t.discount)}`} highlight />}
             {t.giftWrap > 0 && <Row label="Gift wrapping" value={formatMoney(t.giftWrap)} />}
             <Row label={t.shipping.label} value={t.shipping.free ? "Free" : region ? formatMoney(t.shipping.cents) : `from ${formatMoney(t.shipping.cents)}`} />
-            <div className="flex justify-between border-t border-line pt-3 text-lg font-semibold">
+            <div className="flex justify-between border-t border-line pt-3 text-[17px]">
               <dt>Total</dt>
               <dd className="tabular-nums">
-                <span className="text-muted mr-1 text-xs font-normal">AUD</span>
+                <span className="mr-1 text-[12px] text-grey">AUD</span>
                 {formatMoney(t.total)}
               </dd>
             </div>
@@ -310,13 +305,13 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
             <PayButton pending={pending} total={t.total} paymentsLive={paymentsLive} disabled={!!pcMismatch} />
           </div>
           {store.commerce.afterpay.enabled && t.total <= store.commerce.afterpay.maxCents && (
-            <p className="text-muted mt-3 text-center text-xs">
-              Or pay in 4 × {formatMoney(afterpayInstalment(t.total))} with Afterpay on the next step
+            <p className="mt-3 text-center text-[12px] text-grey">
+              Afterpay available on the next step: 4 payments of {formatMoney(afterpayInstalment(t.total))}
             </p>
           )}
         </div>
-        <p className="text-muted mt-4 px-2 text-center text-xs">
-          By placing your order you agree to our <Link href="/terms" className="underline">terms</Link> and{" "}
+        <p className="mt-4 px-2 text-center text-[12px] text-grey">
+          By placing an order you agree to our <Link href="/terms" className="underline">terms</Link> and{" "}
           <Link href="/privacy" className="underline">privacy policy</Link>. {store.commerce.returnDays}-day returns ·{" "}
           <Link href="/returns" className="underline">details</Link>
         </p>
@@ -325,14 +320,10 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
   );
 }
 
-function Section({ n, title, icon, children }: { n: number; title: string; icon?: React.ReactNode; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="mb-4 flex items-center gap-3 text-xl">
-        <span className="grid size-7 place-items-center rounded-full bg-gum font-sans text-sm font-bold text-white">{n}</span>
-        {title}
-        {icon && <span className="text-gum">{icon}</span>}
-      </h2>
+      <h2 className="mb-4 text-[17px]">{title}</h2>
       {children}
     </section>
   );
@@ -341,12 +332,12 @@ function Section({ n, title, icon, children }: { n: number; title: string; icon?
 function Input({ name, label, error, ...rest }: { name: string; label: string; error?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div>
-      <label htmlFor={name} className="label">
+      <label htmlFor={name} className="field-label">
         {label}
       </label>
-      <input id={name} name={name} className="field" aria-invalid={!!error} aria-describedby={error ? `${name}-err` : undefined} {...rest} />
+      <input id={name} name={name} className="input" aria-invalid={!!error} aria-describedby={error ? `${name}-err` : undefined} {...rest} />
       {error && (
-        <p id={`${name}-err`} className="mt-1 text-sm text-clay">
+        <p id={`${name}-err`} className="mt-1 text-[13px] text-sale">
           {error}
         </p>
       )}
@@ -356,18 +347,17 @@ function Input({ name, label, error, ...rest }: { name: string; label: string; e
 
 function Row({ label, value, highlight, muted }: { label: string; value: string; highlight?: boolean; muted?: boolean }) {
   return (
-    <div className={`flex justify-between ${muted ? "text-muted text-xs" : ""}`}>
+    <div className={`flex justify-between ${muted ? "text-[12px] text-grey" : ""}`}>
       <dt>{label}</dt>
-      <dd className={`tabular-nums ${highlight ? "font-semibold text-gum" : ""}`}>{value}</dd>
+      <dd className={`tabular-nums ${highlight ? "text-ok" : ""}`}>{value}</dd>
     </div>
   );
 }
 
 function PayButton({ pending, total, paymentsLive, disabled }: { pending: boolean; total: number; paymentsLive: boolean; disabled: boolean }) {
   return (
-    <button className="btn btn-primary w-full py-4 text-base" disabled={pending || disabled}>
-      <Lock size={16} />
-      {pending ? "Just a moment…" : paymentsLive ? `Continue to payment · ${formatMoney(total)}` : `Place demo order · ${formatMoney(total)}`}
+    <button className="btn btn-dark h-14 w-full" disabled={pending || disabled}>
+      {pending ? "Please wait…" : paymentsLive ? `Continue to payment · ${formatMoney(total)}` : `Place test order · ${formatMoney(total)}`}
     </button>
   );
 }

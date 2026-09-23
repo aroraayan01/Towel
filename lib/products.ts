@@ -1,29 +1,42 @@
 import "server-only";
 
 import type { Prisma } from "@/app/generated/prisma/client";
+import { PLACEHOLDER } from "./placeholder";
 import { prisma } from "./prisma";
 
-const withVariants = {
+const listInclude = {
   variants: { orderBy: [{ sortOrder: "asc" as const }, { priceCents: "asc" as const }] },
+  images: { orderBy: { sortOrder: "asc" as const } },
   reviews: { where: { approved: true }, select: { rating: true } },
 } satisfies Prisma.ProductInclude;
 
-export type ProductWithVariants = Prisma.ProductGetPayload<{ include: typeof withVariants }>;
+type ProductForList = Prisma.ProductGetPayload<{ include: typeof listInclude }>;
 
 export type ProductSummary = ReturnType<typeof summarise>;
 
-/** The shape product cards and listings need — serialisable, no Dates. */
-export function summarise(p: ProductWithVariants) {
+/** The shape product cards need. Serialisable, no Dates. */
+export function summarise(p: ProductForList) {
   const prices = p.variants.map((v) => v.priceCents);
-  const compare = p.variants
-    .map((v) => v.compareAtCents ?? 0)
-    .filter((c) => c > 0);
-  const colours: { name: string; hex: string; accent: string }[] = [];
+  const compare = p.variants.map((v) => v.compareAtCents ?? 0).filter((c) => c > 0);
+
+  const colours: { name: string; hex: string; accent: string; image: string | null }[] = [];
   for (const v of p.variants) {
-    if (!colours.some((c) => c.name === v.colourName)) {
-      colours.push({ name: v.colourName, hex: v.colourHex, accent: v.accentHex });
-    }
+    if (colours.some((c) => c.name === v.colourName)) continue;
+    colours.push({
+      name: v.colourName,
+      hex: v.colourHex,
+      accent: v.accentHex,
+      image: p.images.find((i) => i.colourName === v.colourName)?.url ?? null,
+    });
   }
+
+  // Card shows the first colour's first photo; hover shows its next photo, or a shared lifestyle shot
+  const first = colours[0]?.name;
+  const firstSet = p.images.filter((i) => i.colourName === first);
+  const shared = p.images.filter((i) => !i.colourName);
+  const primary = firstSet[0] ?? shared[0] ?? p.images[0];
+  const secondary = firstSet[1] ?? shared[0] ?? p.images.find((i) => i !== primary);
+
   const ratings = p.reviews.map((r) => r.rating);
   return {
     id: p.id,
@@ -32,10 +45,11 @@ export function summarise(p: ProductWithVariants) {
     tagline: p.tagline,
     category: p.category,
     collection: p.collection,
-    pattern: p.pattern,
-    imageUrl: p.imageUrl,
     isNew: p.isNew,
     bestseller: p.bestseller,
+    image: primary?.url ?? PLACEHOLDER,
+    imageAlt: primary?.alt ?? p.name,
+    hoverImage: secondary && secondary.url !== primary?.url ? secondary.url : null,
     minPriceCents: Math.min(...prices),
     maxPriceCents: Math.max(...prices),
     compareAtCents: compare.length ? Math.max(...compare) : null,
@@ -75,8 +89,8 @@ export async function listProducts(filter: ProductFilter = {}) {
 
   const rows = await prisma.product.findMany({
     where,
-    include: withVariants,
-    orderBy: [{ featured: "desc" }, { bestseller: "desc" }, { createdAt: "desc" }],
+    include: listInclude,
+    orderBy: [{ featured: "desc" }, { bestseller: "desc" }, { createdAt: "asc" }],
   });
 
   let items = rows.map(summarise);
@@ -109,6 +123,7 @@ export async function getProduct(slug: string) {
     where: { slug, active: true },
     include: {
       variants: { orderBy: [{ sortOrder: "asc" }, { priceCents: "asc" }] },
+      images: { orderBy: { sortOrder: "asc" } },
       reviews: { where: { approved: true }, orderBy: { createdAt: "desc" } },
     },
   });
@@ -117,10 +132,9 @@ export async function getProduct(slug: string) {
 export async function relatedProducts(productId: string, collection: string, category: string) {
   const rows = await prisma.product.findMany({
     where: { active: true, id: { not: productId }, category },
-    include: withVariants,
+    include: listInclude,
     take: 8,
   });
-  // Same collection first, then the rest of the category
   return rows
     .map(summarise)
     .sort((a, b) => Number(b.collection === collection) - Number(a.collection === collection))
@@ -128,19 +142,15 @@ export async function relatedProducts(productId: string, collection: string, cat
 }
 
 export async function productsBySlugs(slugs: string[]) {
-  const rows = await prisma.product.findMany({
-    where: { active: true, slug: { in: slugs } },
-    include: withVariants,
-  });
+  const rows = await prisma.product.findMany({ where: { active: true, slug: { in: slugs } }, include: listInclude });
   return rows.map(summarise);
 }
 
 export async function allColours(category?: string) {
-  const rows = await prisma.variant.findMany({
+  return prisma.variant.findMany({
     where: { product: { active: true, ...(category ? { category } : {}) } },
     select: { colourName: true, colourHex: true },
     distinct: ["colourName"],
     orderBy: { colourName: "asc" },
   });
-  return rows;
 }

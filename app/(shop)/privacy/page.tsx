@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 // Australian Privacy Principles, but it's a template, not legal advice.
 export default function PrivacyPage() {
   return (
-    <PolicyPage title="Privacy policy" intro="The short version: we only collect what we need to get your order to you, and we never sell your data." updated="23 September 2026">
+    <PolicyPage title="Privacy policy" intro="We collect what we need to deliver your order, and we never sell your data." updated="23 September 2026">
       <p>
         {store.legalName} (ABN {store.abn}) (&ldquo;we&rdquo;, &ldquo;us&rdquo;) respects your privacy. This policy explains how
         we handle personal information in line with the <em>Privacy Act 1988</em> (Cth) and the Australian Privacy
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
       <ul>
         <li>to process, deliver and support your order, including sending order and shipping emails</li>
         <li>to answer your questions and handle returns</li>
-        <li>to send marketing emails, only if you&apos;ve opted in — every email has an unsubscribe link</li>
+        <li>to send marketing emails, only if you&apos;ve opted in, with an unsubscribe link in every email</li>
         <li>to prevent fraud and meet our legal obligations (for example, keeping tax records)</li>
       </ul>
 

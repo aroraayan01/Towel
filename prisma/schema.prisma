@@ -1,4 +1,4 @@
-// Wattle & Weave — data model
+// Saltbush: data model
 //
 // Prisma 7: the `prisma-client` generator with an explicit `output` is
 // required, and the datasource URL lives in prisma.config.ts.
@@ -32,12 +32,6 @@ model Product {
   details      String
   material     String
   care         String
-  /// Drives the illustrated product art until real photos exist:
-  /// towel: "stripe" | "plain" | "waffle" | "fouta"
-  /// rug:   "stripe" | "diamond" | "border" | "check" | "plain"
-  pattern      String
-  /// Optional real photo URL — overrides the illustration when set
-  imageUrl     String?
   featured     Boolean  @default(false)
   bestseller   Boolean  @default(false)
   isNew        Boolean  @default(false)
@@ -47,10 +41,28 @@ model Product {
   updatedAt    DateTime @updatedAt
 
   variants   Variant[]
+  images     ProductImage[]
   reviews    Review[]
   orderItems OrderItem[]
 
   @@index([category, collection])
+}
+
+/// Product photos. Images with a colourName only show when that colour is
+/// selected; images without one (lifestyle shots) show for every colour.
+model ProductImage {
+  id         String  @id @default(cuid())
+  productId  String
+  url        String
+  alt        String
+  colourName String?
+  /// Photographer / source, kept so stock photo licences can be traced
+  credit     String?
+  sortOrder  Int     @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 model Variant {
@@ -91,7 +103,7 @@ model Review {
 
 model Order {
   id              String    @id @default(cuid())
-  /// Human-facing order number, e.g. WW-10042
+  /// Human-facing order number, e.g. 1042
   number          String    @unique
   /// Secret used in the confirmation URL so order numbers can't be enumerated
   accessToken     String    @unique

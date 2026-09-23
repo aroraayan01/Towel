@@ -13,12 +13,7 @@ export type CartLine = {
   slug: string;
   name: string;
   variantLabel: string;
-  category: string;
-  collection: string;
-  pattern: string;
-  colourHex: string;
-  accentHex: string;
-  imageUrl?: string | null;
+  image: string;
   unitCents: number;
   quantity: number;
   monogram?: string;

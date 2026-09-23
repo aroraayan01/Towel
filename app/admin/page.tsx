@@ -24,10 +24,10 @@ export default async function Dashboard() {
 
   return (
     <>
-      <AdminTitle title="G'day 👋" sub="Here's how the shop's going." />
+      <AdminTitle title="Dashboard" />
       {!paymentsLive() && (
-        <p className="mb-6 rounded-xl border border-dashed border-clay/50 bg-white p-4 text-sm">
-          <strong>Demo mode.</strong> STRIPE_SECRET_KEY isn&apos;t set, so checkout creates orders without taking payment.
+        <p className="mb-6 border border-dashed border-sale/40 bg-white p-4 text-sm">
+          <strong>Test mode.</strong> STRIPE_SECRET_KEY isn&apos;t set, so checkout creates orders without taking payment.
         </p>
       )}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -41,7 +41,7 @@ export default async function Dashboard() {
         <section className={card}>
           <div className="mb-3 flex justify-between">
             <h2 className="text-xl">Recent orders</h2>
-            <Link href="/admin/orders" className="text-sm text-gum underline">All orders</Link>
+            <Link href="/admin/orders" className="text-sm text-ink underline">All orders</Link>
           </div>
           <div className="overflow-x-auto">
             <table className={table}>
@@ -52,12 +52,12 @@ export default async function Dashboard() {
                 {recent.map((o) => (
                   <tr key={o.id}>
                     <td><Link href={`/admin/orders/${o.number}`} className="font-semibold underline">{o.number}</Link></td>
-                    <td>{o.firstName} {o.lastName}<span className="text-muted block text-xs">{o.suburb} {o.state}</span></td>
+                    <td>{o.firstName} {o.lastName}<span className="text-grey block text-xs">{o.suburb} {o.state}</span></td>
                     <td><StatusBadge status={o.status} /></td>
                     <td className="text-right tabular-nums">{formatMoney(o.totalCents)}</td>
                   </tr>
                 ))}
-                {!recent.length && <tr><td colSpan={4} className="text-muted py-6 text-center">No orders yet — they&apos;ll appear here.</td></tr>}
+                {!recent.length && <tr><td colSpan={4} className="text-grey py-6 text-center">No orders yet.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -67,11 +67,11 @@ export default async function Dashboard() {
           <ul className="divide-y divide-line text-sm">
             {lowStock.map((v) => (
               <li key={v.id} className="flex justify-between gap-3 py-2">
-                <span>{v.product.name}<span className="text-muted block text-xs">{v.colourName} · {v.size}</span></span>
-                <span className={`font-bold ${v.stock <= 0 ? "text-clay" : "text-[#a66a00]"}`}>{v.stock <= 0 ? "Sold out" : `${v.stock} left`}</span>
+                <span>{v.product.name}<span className="text-grey block text-xs">{v.colourName} · {v.size}</span></span>
+                <span className={`font-bold ${v.stock <= 0 ? "text-sale" : "text-[#a66a00]"}`}>{v.stock <= 0 ? "Sold out" : `${v.stock} left`}</span>
               </li>
             ))}
-            {!lowStock.length && <li className="text-muted py-4">Everything is well stocked.</li>}
+            {!lowStock.length && <li className="text-grey py-4">Everything is well stocked.</li>}
           </ul>
         </section>
       </div>
@@ -81,10 +81,10 @@ export default async function Dashboard() {
 
 function Stat({ label, value, sub, href, highlight }: { label: string; value: string; sub: string; href?: string; highlight?: boolean }) {
   const body = (
-    <div className={`${card} h-full ${highlight ? "ring-2 ring-wattle" : ""}`}>
-      <p className="text-muted text-sm">{label}</p>
-      <p className="mt-1 font-serif text-3xl">{value}</p>
-      <p className="text-muted mt-1 text-xs">{sub}</p>
+    <div className={`${card} h-full ${highlight ? "ring-2 ring-ink" : ""}`}>
+      <p className="text-grey text-sm">{label}</p>
+      <p className="mt-1 text-3xl">{value}</p>
+      <p className="text-grey mt-1 text-xs">{sub}</p>
     </div>
   );
   return href ? <Link href={href}>{body}</Link> : body;

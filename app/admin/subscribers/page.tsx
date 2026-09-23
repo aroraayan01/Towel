@@ -9,7 +9,7 @@ export default async function SubscribersPage() {
     <>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <AdminTitle title="Subscribers" sub={`${subs.length} people want to hear from you.`} />
-        <a href="/admin/subscribers/export" className="btn btn-outline">Download CSV</a>
+        <a href="/admin/subscribers/export" className="btn btn-line">Download CSV</a>
       </div>
       <div className={`${card} overflow-x-auto p-0`}>
         <table className={table}>

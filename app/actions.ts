@@ -26,21 +26,21 @@ export async function subscribe(_: FormState, form: FormData): Promise<FormState
   if (form.get("company")) return { ok: true, message: "Thanks!" }; // honeypot
   const parsed = email.safeParse(form.get("email"));
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0].message };
-  if (await rateLimited("subscribe", 5, 60_000)) return { ok: false, message: "Too many attempts — try again in a minute." };
+  if (await rateLimited("subscribe", 5, 60_000)) return { ok: false, message: "Too many attempts. Try again in a minute." };
 
   await prisma.subscriber.upsert({ where: { email: parsed.data }, create: { email: parsed.data }, update: {} });
   return {
     ok: true,
-    message: `You're in! Use code ${store.commerce.welcomeCode} for 10% off your first order.`,
+    message: `Thanks for signing up. Use ${store.commerce.welcomeCode} at checkout for 10% off your first order.`,
   };
 }
 
 // ─── Contact form ────────────────────────────────────────────────
 const contactSchema = z.object({
-  name: z.string().trim().min(1, "Please tell us your name").max(100),
+  name: z.string().trim().min(1, "Enter your name").max(100),
   email,
   orderRef: z.string().trim().max(30).optional(),
-  message: z.string().trim().min(10, "A little more detail helps us help you (10+ characters)").max(4000),
+  message: z.string().trim().min(10, "Please add a bit more detail").max(4000),
 });
 
 export async function sendContact(_: FormState, form: FormData): Promise<FormState> {
@@ -52,7 +52,7 @@ export async function sendContact(_: FormState, form: FormData): Promise<FormSta
     message: form.get("message"),
   });
   if (!parsed.success) return { ok: false, message: "Please check the highlighted fields.", errors: fieldErrors(parsed.error) };
-  if (await rateLimited("contact", 3, 10 * 60_000)) return { ok: false, message: "You've sent a few messages already — we'll be in touch soon." };
+  if (await rateLimited("contact", 3, 10 * 60_000)) return { ok: false, message: "You've already sent a few messages. We'll reply soon." };
 
   const m = await prisma.contactMessage.create({ data: parsed.data });
 
@@ -65,25 +65,25 @@ export async function sendContact(_: FormState, form: FormData): Promise<FormSta
   });
   await sendMail({
     to: m.email,
-    subject: `We've got your message — ${store.name}`,
+    subject: `We've received your message`,
     html: emailLayout(
-      `Thanks, ${escapeHtml(m.name.split(" ")[0])}!`,
-      `<p style="line-height:1.6">A real person (usually ${escapeHtml(store.founders.names)}) reads every message. We'll reply within one business day — ${escapeHtml(store.hours)}.</p>`
+      `Thanks, ${escapeHtml(m.name.split(" ")[0])}`,
+      `<p style="line-height:1.6">We've received your message and will reply within one business day (${escapeHtml(store.hours)}).</p>`
     ),
     text: `Thanks for getting in touch. We'll reply within one business day.`,
   });
 
-  return { ok: true, message: "Thanks! We've got your message and will reply within one business day." };
+  return { ok: true, message: "We'll reply within one business day." };
 }
 
 // ─── Reviews ─────────────────────────────────────────────────────
 const reviewSchema = z.object({
   productId: z.string().min(1),
-  name: z.string().trim().min(1, "Please add your first name").max(60),
+  name: z.string().trim().min(1, "Enter your first name").max(60),
   location: z.string().trim().max(60).optional(),
-  rating: z.coerce.number().int().min(1, "Please choose a star rating").max(5),
-  title: z.string().trim().min(2, "Please add a short title").max(100),
-  body: z.string().trim().min(10, "Tell us a little more (10+ characters)").max(2000),
+  rating: z.coerce.number().int().min(1, "Choose a rating").max(5),
+  title: z.string().trim().min(2, "Add a title").max(100),
+  body: z.string().trim().min(10, "Please write at least a sentence").max(2000),
 });
 
 export async function submitReview(_: FormState, form: FormData): Promise<FormState> {
@@ -97,12 +97,12 @@ export async function submitReview(_: FormState, form: FormData): Promise<FormSt
     body: form.get("body"),
   });
   if (!parsed.success) return { ok: false, message: "Please check the highlighted fields.", errors: fieldErrors(parsed.error) };
-  if (await rateLimited("review", 3, 60 * 60_000)) return { ok: false, message: "Thanks — you've left a few reviews recently." };
+  if (await rateLimited("review", 3, 60 * 60_000)) return { ok: false, message: "You've left several reviews recently. Please try again later." };
 
   const product = await prisma.product.findUnique({ where: { id: parsed.data.productId }, select: { slug: true } });
   if (!product) return { ok: false, message: "That product no longer exists." };
 
   await prisma.review.create({ data: { ...parsed.data, approved: false } });
   revalidatePath("/admin/reviews");
-  return { ok: true, message: "Thank you! Your review will appear once we've had a read (usually within a day)." };
+  return { ok: true, message: "Thanks for your review. It will appear once we've checked it, usually within a day." };
 }

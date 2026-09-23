@@ -1,40 +1,34 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Heart, Menu, Search, ShoppingBag, X } from "lucide-react";
+import { Menu, Search, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCart } from "@/components/cart/CartProvider";
-import { CATEGORIES, COLLECTIONS } from "@/lib/collections";
+import { CATEGORIES, COLLECTIONS, type Category } from "@/lib/collections";
 import { formatPrice } from "@/lib/money";
 import { store } from "@/lib/store";
-import { Logo } from "./Logo";
+import { Wordmark } from "./Logo";
 
-const MESSAGES = [
-  `Free standard shipping Australia-wide on orders over ${formatPrice(store.commerce.freeShippingThresholdCents)}`,
-  `${store.commerce.returnDays}-day change-of-mind returns`,
-  "Free handwritten gift notes on every order",
-  store.commerce.afterpay.enabled ? "Shop now, pay later with Afterpay" : "Secure checkout",
+const NAV: { cat: Category; label: string }[] = [
+  { cat: "towels", label: "Towels" },
+  { cat: "rugs", label: "Rugs & mats" },
 ];
 
 export function Header() {
   const { count, setOpen, wishlist, ready } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [msg, setMsg] = useState(0);
+  const [panel, setPanel] = useState<Category | null>(null);
   const pathname = usePathname();
 
-  useEffect(() => {
-    const t = setInterval(() => setMsg((m) => (m + 1) % MESSAGES.length), 5000);
-    return () => clearInterval(t);
-  }, []);
-
-  // Close menus on navigation
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuOpen(false);
     setSearchOpen(false);
+    setPanel(null);
   }, [pathname]);
 
   useEffect(() => {
@@ -43,81 +37,118 @@ export function Header() {
 
   return (
     <>
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded focus:bg-white focus:px-4 focus:py-2 focus:shadow">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:bg-white focus:px-4 focus:py-2">
         Skip to content
       </a>
-      <div className="bg-gum text-center text-sm text-white">
-        <p className="container-page py-2" aria-live="polite">
-          {MESSAGES[msg]}
+      <div className="bg-ink text-white">
+        <p className="page-x caps py-2 text-center !text-[11px]">
+          Free delivery over {formatPrice(store.commerce.freeShippingThresholdCents)}
+          <span className="mx-3 opacity-50">|</span>
+          {store.commerce.returnDays}-day returns
+          <span className="hidden sm:inline">
+            <span className="mx-3 opacity-50">|</span>Afterpay available
+          </span>
         </p>
       </div>
-      <header className="sticky top-0 z-40 border-b border-line bg-cream/95 backdrop-blur">
-        <div className="container-page flex h-16 items-center gap-4 sm:h-20">
-          <button className="-ml-2 grid size-10 place-items-center rounded-full hover:bg-sand lg:hidden" onClick={() => setMenuOpen(true)} aria-label="Open menu">
-            <Menu size={22} />
-          </button>
 
-          <Link href="/" className="shrink-0" aria-label={`${store.name} home`}>
-            <Logo />
+      <header className="sticky top-0 z-40 border-b border-line bg-white" onMouseLeave={() => setPanel(null)}>
+        <div className="page-x grid h-16 grid-cols-[1fr_auto_1fr] items-center md:h-[72px]">
+          <div className="flex items-center">
+            <button className="-ml-2 grid size-10 place-items-center lg:hidden" onClick={() => setMenuOpen(true)} aria-label="Open menu">
+              <Menu size={20} strokeWidth={1.5} />
+            </button>
+            <button className="grid size-10 place-items-center lg:hidden" onClick={() => setSearchOpen((s) => !s)} aria-label="Search">
+              <Search size={19} strokeWidth={1.5} />
+            </button>
+            <nav className="hidden items-center gap-7 text-[14px] lg:flex" aria-label="Main">
+              {NAV.map((n) => (
+                <Link
+                  key={n.cat}
+                  href={`/shop/${n.cat}`}
+                  className={`hover-line py-1 ${panel === n.cat ? "!bg-[length:100%_1px]" : ""}`}
+                  onMouseEnter={() => setPanel(n.cat)}
+                  onFocus={() => setPanel(n.cat)}
+                  aria-expanded={panel === n.cat}
+                >
+                  {n.label}
+                </Link>
+              ))}
+              <Link href="/shop?sort=newest" className="hover-line py-1" onMouseEnter={() => setPanel(null)}>
+                New in
+              </Link>
+              <Link href="/about" className="hover-line py-1" onMouseEnter={() => setPanel(null)}>
+                About
+              </Link>
+            </nav>
+          </div>
+
+          <Link href="/" aria-label={`${store.name} home`}>
+            <Wordmark />
           </Link>
 
-          <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Main">
-            {(["towels", "rugs"] as const).map((cat) => (
-              <div key={cat} className="group relative">
-                <Link href={`/shop/${cat}`} className="flex items-center gap-1 rounded-full px-4 py-2 font-medium hover:bg-sand">
-                  {CATEGORIES[cat].name}
-                  <ChevronDown size={14} className="transition group-hover:rotate-180" aria-hidden />
-                </Link>
-                <div className="invisible absolute left-0 top-full pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
-                  <ul className="w-64 rounded-2xl border border-line bg-white p-2 shadow-xl">
-                    {COLLECTIONS.filter((c) => c.category === cat).map((c) => (
-                      <li key={c.slug}>
-                        <Link href={`/shop/${c.slug}`} className="block rounded-xl px-3 py-2.5 hover:bg-sand">
-                          <span className="block font-medium">{c.name}</span>
-                          <span className="text-muted block text-xs">{c.blurb}</span>
-                        </Link>
-                      </li>
-                    ))}
-                    <li>
-                      <Link href={`/shop/${cat}`} className="block rounded-xl px-3 py-2.5 text-sm font-semibold text-gum hover:bg-sand">
-                        Shop all {CATEGORIES[cat].name.toLowerCase()} →
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            ))}
-            <Link href="/shop?sort=newest" className="rounded-full px-4 py-2 font-medium hover:bg-sand">
-              New in
-            </Link>
-            <Link href="/about" className="rounded-full px-4 py-2 font-medium hover:bg-sand">
-              Our story
-            </Link>
-          </nav>
-
-          <div className="ml-auto flex items-center gap-1">
-            <button className="grid size-10 place-items-center rounded-full hover:bg-sand" onClick={() => setSearchOpen((s) => !s)} aria-label="Search" aria-expanded={searchOpen}>
-              <Search size={20} />
+          <div className="flex items-center justify-end gap-5 text-[14px]">
+            <button className="hidden hover-line py-1 lg:inline" onClick={() => setSearchOpen((s) => !s)} aria-expanded={searchOpen}>
+              Search
             </button>
-            <Link href="/wishlist" className="relative hidden size-10 place-items-center rounded-full hover:bg-sand sm:grid" aria-label={`Wishlist (${wishlist.length})`}>
-              <Heart size={20} />
-              {ready && wishlist.length > 0 && <Badge n={wishlist.length} />}
+            <Link href="/wishlist" className="hidden hover-line py-1 lg:inline">
+              Wishlist{ready && wishlist.length > 0 && ` (${wishlist.length})`}
             </Link>
-            <button className="relative grid size-10 place-items-center rounded-full hover:bg-sand" onClick={() => setOpen(true)} aria-label={`Open cart (${count} items)`}>
-              <ShoppingBag size={20} />
-              {ready && count > 0 && <Badge n={count} />}
+            <button className="hidden hover-line py-1 lg:inline" onClick={() => setOpen(true)}>
+              Cart ({ready ? count : 0})
+            </button>
+            <button className="relative -mr-2 grid size-10 place-items-center lg:hidden" onClick={() => setOpen(true)} aria-label={`Cart, ${count} items`}>
+              <ShoppingBag size={19} strokeWidth={1.5} />
+              {ready && count > 0 && (
+                <span className="absolute right-0.5 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-ink px-1 text-[10px] text-white">{count}</span>
+              )}
             </button>
           </div>
         </div>
 
+        {/* Desktop menu panel */}
+        {panel && (
+          <div className="animate-fade absolute inset-x-0 top-full hidden border-b border-line bg-white lg:block">
+            <div className="page-x grid grid-cols-[1fr_1fr_1fr_1fr] gap-8 py-10">
+              <div>
+                <p className="caps mb-4 text-grey">{CATEGORIES[panel].name}</p>
+                <ul className="space-y-2.5 text-[15px]">
+                  {COLLECTIONS.filter((c) => c.category === panel).map((c) => (
+                    <li key={c.slug}>
+                      <Link href={`/shop/${c.slug}`} className="hover-line">
+                        {c.name}
+                      </Link>
+                    </li>
+                  ))}
+                  <li className="pt-2">
+                    <Link href={`/shop/${panel}`} className="link">
+                      Shop all
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              {COLLECTIONS.filter((c) => c.category === panel).map((c) => (
+                <Link key={c.slug} href={`/shop/${c.slug}`} className="group block">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-bone">
+                    <Image src={c.image} alt="" fill sizes="25vw" className="object-cover transition duration-700 group-hover:scale-[1.03]" />
+                  </div>
+                  <p className="mt-2 text-[14px]">{c.name}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         {searchOpen && (
-          <div className="animate-fade-in border-t border-line bg-cream">
-            <form action="/shop" className="container-page flex gap-2 py-4" role="search">
+          <div className="animate-fade absolute inset-x-0 top-full border-b border-line bg-white">
+            <form action="/shop" className="page-x flex items-center gap-3 py-5" role="search">
+              <Search size={18} strokeWidth={1.5} className="shrink-0 text-grey" aria-hidden />
               <label htmlFor="site-search" className="sr-only">
-                Search products
+                Search
               </label>
-              <input id="site-search" name="q" type="search" autoFocus placeholder="Search towels, rugs, colours…" className="field" />
-              <button className="btn btn-primary">Search</button>
+              <input id="site-search" name="q" type="search" autoFocus placeholder="Search towels, rugs, colours" className="h-10 w-full bg-transparent text-lg outline-none" />
+              <button type="button" onClick={() => setSearchOpen(false)} aria-label="Close search" className="shrink-0">
+                <X size={20} strokeWidth={1.5} />
+              </button>
             </form>
           </div>
         )}
@@ -125,52 +156,44 @@ export function Header() {
 
       {menuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-          <div className="animate-fade-in absolute inset-0 bg-ink/40" onClick={() => setMenuOpen(false)} aria-hidden />
-          <div className="absolute inset-y-0 left-0 flex w-[85%] max-w-sm flex-col overflow-y-auto bg-cream">
-            <div className="flex items-center justify-between border-b border-line px-5 py-4">
-              <Logo />
-              <button onClick={() => setMenuOpen(false)} className="grid size-10 place-items-center rounded-full hover:bg-sand" aria-label="Close menu">
-                <X size={20} />
+          <div className="animate-fade absolute inset-0 bg-black/30" onClick={() => setMenuOpen(false)} aria-hidden />
+          <div className="absolute inset-y-0 left-0 flex w-[88%] max-w-sm flex-col overflow-y-auto bg-white">
+            <div className="flex h-16 items-center justify-between border-b border-line px-5">
+              <Wordmark />
+              <button onClick={() => setMenuOpen(false)} className="-mr-2 grid size-10 place-items-center" aria-label="Close menu">
+                <X size={20} strokeWidth={1.5} />
               </button>
             </div>
-            <nav className="flex-1 px-5 py-4" aria-label="Mobile">
-              {(["towels", "rugs"] as const).map((cat) => (
-                <div key={cat} className="mb-6">
-                  <Link href={`/shop/${cat}`} className="font-serif text-2xl">
-                    {CATEGORIES[cat].name}
-                  </Link>
-                  <ul className="mt-2 space-y-1">
-                    {COLLECTIONS.filter((c) => c.category === cat).map((c) => (
+            <nav className="flex-1 px-5 py-6" aria-label="Mobile">
+              {NAV.map((n) => (
+                <div key={n.cat} className="mb-7">
+                  <p className="caps mb-3 text-grey">{n.label}</p>
+                  <ul className="space-y-3 text-[17px]">
+                    {COLLECTIONS.filter((c) => c.category === n.cat).map((c) => (
                       <li key={c.slug}>
-                        <Link href={`/shop/${c.slug}`} className="text-muted block py-1.5 hover:text-ink">
-                          {c.name}
-                        </Link>
+                        <Link href={`/shop/${c.slug}`}>{c.name}</Link>
                       </li>
                     ))}
+                    <li>
+                      <Link href={`/shop/${n.cat}`} className="link">
+                        Shop all
+                      </Link>
+                    </li>
                   </ul>
                 </div>
               ))}
-              <ul className="space-y-3 border-t border-line pt-5 font-medium">
+              <ul className="space-y-3 border-t border-line pt-6 text-[15px]">
                 <li><Link href="/shop?sort=newest">New in</Link></li>
-                <li><Link href="/about">Our story</Link></li>
-                <li><Link href="/wishlist">Wishlist</Link></li>
-                <li><Link href="/care-guide">Care guide</Link></li>
-                <li><Link href="/faq">Help &amp; FAQs</Link></li>
+                <li><Link href="/about">About</Link></li>
+                <li><Link href="/wishlist">Wishlist{ready && wishlist.length > 0 && ` (${wishlist.length})`}</Link></li>
                 <li><Link href="/order-status">Track an order</Link></li>
-                <li><Link href="/contact">Contact us</Link></li>
+                <li><Link href="/faq">Help</Link></li>
+                <li><Link href="/contact">Contact</Link></li>
               </ul>
             </nav>
           </div>
         </div>
       )}
     </>
-  );
-}
-
-function Badge({ n }: { n: number }) {
-  return (
-    <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-clay px-1 text-[11px] font-bold text-white" aria-hidden>
-      {n > 99 ? "99+" : n}
-    </span>
   );
 }

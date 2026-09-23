@@ -21,7 +21,7 @@ const orgJsonLd = {
     postalCode: store.address.postcode,
     addressCountry: "AU",
   },
-  sameAs: Object.values(store.social),
+  sameAs: [`https://instagram.com/${store.instagram}`],
 };
 
 export default function ShopLayout({ children }: LayoutProps<"/">) {

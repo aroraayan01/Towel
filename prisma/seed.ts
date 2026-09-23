@@ -1,11 +1,14 @@
 /**
  * Seeds the starter catalogue. Safe to re-run: products are upserted by slug
- * and their variants/reviews replaced. Orders, subscribers and messages are
- * never touched.
+ * and their variants, images and reviews replaced. Orders, subscribers and
+ * messages are never touched.
  *
- * All copy here is placeholder — check every product claim (materials, GSM,
- * "washable", etc.) against the real stock before launch. Under Australian
- * Consumer Law a product description is a representation you're liable for.
+ * BEFORE LAUNCH
+ * - Photos are free-licence Unsplash stand-ins (https://unsplash.com/license).
+ *   They are not photos of your stock. Replace them with your own before you
+ *   sell anything, or product pages will misrepresent what people receive.
+ * - Product copy (materials, GSM, sizes) must match the real products.
+ * - Run with SEED_REVIEWS=false. Fake reviews breach the Australian Consumer Law.
  */
 import { config } from "dotenv";
 config({ path: [".env.local", ".env"], quiet: true });
@@ -14,13 +17,16 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
 import { PrismaClient } from "../app/generated/prisma/client";
 
+const SEED_REVIEWS = process.env.SEED_REVIEWS !== "false";
+
 const prisma = new PrismaClient({
   adapter: new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./prisma/dev.db" }),
 });
 
-type Colour = { name: string; hex: string; accent: string };
-type Size = { label: string; price: number; compareAt?: number };
+const u = (id: string) => `https://images.unsplash.com/photo-${id}`;
 
+type Colour = { name: string; hex: string; accent?: string; images: [string, string][] };
+type Size = { label: string; price: number; compareAt?: number };
 type Seed = {
   slug: string;
   name: string;
@@ -31,9 +37,10 @@ type Seed = {
   details: string[];
   material: string;
   care: string;
-  pattern: string;
   colours: Colour[];
   sizes: Size[];
+  /** Shots that apply to every colour (lifestyle, detail) as [photo id, alt] */
+  shared?: [string, string][];
   featured?: boolean;
   bestseller?: boolean;
   isNew?: boolean;
@@ -41,459 +48,441 @@ type Seed = {
   reviews?: { name: string; location: string; rating: number; title: string; body: string }[];
 };
 
-// A palette named after places and plants — a small way to feel local.
-const C = {
-  harbour: { name: "Harbour Blue", hex: "#3F6E8C", accent: "#F3EDE3" },
-  eucalypt: { name: "Eucalypt", hex: "#7C9A86", accent: "#F3EDE3" },
-  ochre: { name: "Ochre", hex: "#C0803F", accent: "#FAF3E8" },
-  saltpan: { name: "Salt Pan", hex: "#EDE6DA", accent: "#C9BCA6" },
-  clay: { name: "Clay", hex: "#B87462", accent: "#F4E9E1" },
-  charcoal: { name: "Charcoal", hex: "#4A4846", accent: "#D8CFC2" },
-  white: { name: "Chalk White", hex: "#F7F5F0", accent: "#D9D3C7" },
-  sandstone: { name: "Sandstone", hex: "#D9C3A0", accent: "#F7F1E6" },
-  sage: { name: "Sage", hex: "#A3B09A", accent: "#F3F1EA" },
-  ironbark: { name: "Ironbark", hex: "#5B4A42", accent: "#E8DDD3" },
-  coral: { name: "Coral Bay", hex: "#E08E79", accent: "#FBF1EC" },
-  wattle: { name: "Wattle", hex: "#E3B23C", accent: "#FFF8E6" },
-  ocean: { name: "Ningaloo", hex: "#2F5D7C", accent: "#F2EFE8" },
-  terracotta: { name: "Terracotta", hex: "#B5563C", accent: "#F6E9DF" },
-  olive: { name: "Saltbush", hex: "#8A8F6A", accent: "#F4F1E6" },
-  pinklake: { name: "Pink Lake", hex: "#E7A6A1", accent: "#FFF5F2" },
-  seafoam: { name: "Seafoam", hex: "#9CC9BF", accent: "#F4FBF8" },
-  jute: { name: "Natural", hex: "#C8A874", accent: "#3B3A36" },
-  jutewhite: { name: "Natural & Chalk", hex: "#D4BC92", accent: "#F3EEE4" },
-  rainforest: { name: "Daintree", hex: "#4F6B55", accent: "#EFE7DA" },
-  dusk: { name: "Dusk", hex: "#6B5B73", accent: "#EFE3D9" },
-  redearth: { name: "Red Earth", hex: "#A5522F", accent: "#F2E6D3" },
-};
+const TOWEL_CARE =
+  "Wash warm (40°C) with similar colours. Use half the usual detergent and skip fabric softener, which makes towels less absorbent. Line dry in the shade or tumble dry low.";
 
 const products: Seed[] = [
-  // ─── Bath towels ─────────────────────────────────────────────
+  // ── Bath towels ─────────────────────────────────────────────
   {
-    slug: "coogee-stripe-bath-towel",
-    name: "Coogee Stripe Towel",
+    slug: "everyday-bath-towel",
+    name: "Everyday Bath Towel",
     category: "towels",
     collection: "bath-towels",
-    tagline: "Our bestseller. Heavy Turkish cotton with a sunny woven stripe.",
+    tagline: "Heavy cotton terry. Soft from the first wash and still soft years later.",
     description:
-      "Named after the ocean pool where we swim most mornings. The Coogee is woven from long-staple Turkish cotton at 600gsm, so it's thick and absorbent without taking three days to dry. The stripe is woven in, not printed, so it won't fade on the line.",
-    details: [
-      "600gsm long-staple Turkish cotton",
-      "Woven stripe that won't fade in the sun",
-      "Double-stitched hems and a hanging loop",
-      "Gets softer with every wash",
-      "Add a monogram for a gift they'll keep for years",
+      "Our most popular towel. 600gsm long-loop cotton, woven with a flat dobby border so it hangs straight on the rail. It's absorbent without being so thick that it never dries.",
+    details: ["600gsm cotton terry", "Flat dobby border", "Hanging loop", "Pre-washed to reduce lint"],
+    material: "100% cotton, 600gsm",
+    care: TOWEL_CARE,
+    colours: [
+      { name: "White", hex: "#F3F1EC", images: [["1760722974657-f64bce2f9cc5", "Stack of white bath towels"], ["1724847885015-be191f1a47ef", "White towels folded on a rack"], ["1596683705523-eb49540c3934", "White towel hanging in morning light"]] },
+      { name: "Stone", hex: "#B8B4AD", images: [["1728034261564-18930dcb2c8e", "Folded stone grey towels"], ["1638232928539-6e91c47ddec5", "Rolled grey towel showing the terry loops"]] },
+      { name: "Mocha", hex: "#6D5646", images: [["1650481093978-6cc58e4649f4", "Mocha and stone towels on a timber stool"], ["1608651061499-ff031fbf6645", "Mocha towel on a heated rail"]] },
+      { name: "Rust", hex: "#A1472B", images: [["1628602813528-0264682cdc87", "Rust towels rolled on a rail"]] },
     ],
-    material: "100% Turkish cotton, 600gsm",
-    care: "Machine wash warm (40°C) with like colours. Skip the fabric softener — it coats the fibres and makes towels less absorbent. Line dry in the shade or tumble dry low.",
-    pattern: "stripe",
-    colours: [C.harbour, C.eucalypt, C.ochre],
     sizes: [
-      { label: "Hand towel 50×90cm", price: 2495 },
-      { label: "Bath towel 70×140cm", price: 4995 },
-      { label: "Bath sheet 90×160cm", price: 6495 },
+      { label: "Hand towel 50 × 90cm", price: 2200 },
+      { label: "Bath towel 70 × 140cm", price: 4500 },
+      { label: "Bath sheet 90 × 165cm", price: 5900 },
     ],
     bestseller: true,
     featured: true,
     monogramable: true,
     reviews: [
-      { name: "Kate", location: "Randwick, NSW", rating: 5, title: "Worth every cent", body: "I bought two in Harbour Blue and went back for two more. They're thick, dry fast and the stripe is still bright after months of line drying." },
-      { name: "Tom", location: "Geelong, VIC", rating: 5, title: "Hotel towels at home", body: "Properly heavy towels. Took two washes to lose the lint but now they're perfect." },
-      { name: "Priya", location: "Paddington, QLD", rating: 4, title: "Lovely, bath sheet is huge", body: "Beautiful quality. The bath sheet is massive — go the regular bath towel if your rail is small." },
+      { name: "Kate M.", location: "Randwick NSW", rating: 5, title: "Bought four more", body: "Thick without being heavy, and they dry overnight in our bathroom. Bought two in White, went back for four in Stone." },
+      { name: "Tom", location: "Geelong VIC", rating: 4, title: "Good towels", body: "Some lint for the first couple of washes, which they warn you about. Fine after that." },
+      { name: "Priya S.", location: "Paddington QLD", rating: 5, title: "Bath sheet is big", body: "The bath sheet is properly big. Order the bath towel if your rail is short." },
     ],
   },
   {
-    slug: "salt-pan-waffle-towel",
-    name: "Salt Pan Waffle Towel",
+    slug: "stripe-bath-towel",
+    name: "Stripe Bath Towel",
     category: "towels",
     collection: "bath-towels",
-    tagline: "Light, quick-drying waffle weave for humid bathrooms.",
+    tagline: "A wide navy stripe, woven in rather than printed.",
     description:
-      "If your towels never quite dry between showers, this is the one. The deep waffle weave has less fabric against your skin and more air in between, so it dries in a fraction of the time — perfect for Queensland summers and small apartments.",
-    details: [
-      "Deep-pocket waffle weave",
-      "Dries up to twice as fast as terry",
-      "Lightweight — great for travel and the gym",
-      "Pre-washed for softness from day one",
+      "Same weight and feel as our Everyday towel, with a yarn-dyed stripe that won't fade on the line. Works in a white bathroom, a beach house or a kid's room.",
+    details: ["600gsm cotton terry", "Yarn-dyed stripe", "Hanging loop"],
+    material: "100% cotton, 600gsm",
+    care: TOWEL_CARE,
+    colours: [
+      { name: "Navy Stripe", hex: "#2F4A7A", accent: "#F4F2EC", images: [["1635353059173-461b9c459f2a", "Folded navy and white striped towels"], ["1740031071401-1ed240e00b7a", "Rolled navy stripe towels"]] },
     ],
-    material: "100% cotton waffle weave",
-    care: "Machine wash warm. Tumble dry low or line dry. Waffle weave shrinks slightly on the first wash — that's what makes it plump up.",
-    pattern: "waffle",
-    colours: [C.saltpan, C.clay, C.charcoal],
     sizes: [
-      { label: "Bath towel 70×140cm", price: 4495 },
-      { label: "Bath sheet 90×160cm", price: 5995 },
+      { label: "Hand towel 50 × 90cm", price: 2500 },
+      { label: "Bath towel 70 × 140cm", price: 4900 },
+      { label: "Bath sheet 90 × 165cm", price: 6500 },
+    ],
+    bestseller: true,
+    monogramable: true,
+    reviews: [{ name: "Chloe", location: "Manly NSW", rating: 5, title: "Stripe hasn't faded", body: "Six months of line drying and the navy is still dark." }],
+  },
+  {
+    slug: "waffle-towel",
+    name: "Waffle Towel",
+    category: "towels",
+    collection: "bath-towels",
+    tagline: "Lightweight waffle weave that dries fast in humid bathrooms.",
+    description:
+      "Less fabric against your skin and more air in the weave, so it dries in a few hours instead of a day. Good for small bathrooms without a window, the gym bag, and travel.",
+    details: ["Deep waffle weave", "Dries much faster than terry", "Packs down small", "Shrinks slightly on first wash, which tightens the weave"],
+    material: "100% cotton waffle",
+    care: "Wash warm. Tumble dry low or line dry. Expect around 3% shrinkage on the first wash.",
+    colours: [
+      { name: "Oat", hex: "#D6C4A6", images: [["1758192496546-dc59dd3baa59", "Oat waffle towel hanging on a tiled wall"], ["1626325138381-c6b2309e3da4", "Oat waffle towel on a timber hanger"]] },
+      { name: "Blush", hex: "#E8C8C1", images: [["1787074614697-dadf1123b83f", "Two folded blush waffle towels"]] },
+    ],
+    sizes: [
+      { label: "Bath towel 70 × 140cm", price: 4200 },
+      { label: "Bath sheet 90 × 165cm", price: 5500 },
     ],
     isNew: true,
     monogramable: true,
     reviews: [
-      { name: "Hannah", location: "Cairns, QLD", rating: 5, title: "Finally a towel that dries", body: "Our bathroom has no window and these are dry by lunchtime. Game changer in the wet season." },
-      { name: "Jess", location: "Newtown, NSW", rating: 4, title: "Takes some getting used to", body: "Feels different to fluffy towels but I'm converted. The Clay colour is gorgeous." },
+      { name: "Hannah", location: "Cairns QLD", rating: 5, title: "Actually dries", body: "Our bathroom has no window and these are dry by lunchtime." },
+      { name: "Jess", location: "Newtown NSW", rating: 4, title: "Different feel", body: "Thinner than a normal towel, takes a week to get used to. I prefer them now." },
     ],
   },
+  // ── Hand towels ─────────────────────────────────────────────
   {
-    slug: "everyday-plush-towel",
-    name: "Everyday Plush Towel",
-    category: "towels",
-    collection: "bath-towels",
-    tagline: "The thick, fluffy staple. Five calm colours to mix and match.",
-    description:
-      "No stripes, no fuss — just a deeply soft 650gsm towel in colours that sit quietly in any bathroom. Made with zero-twist cotton loops that stay fluffy wash after wash.",
-    details: [
-      "650gsm zero-twist cotton",
-      "Extra-absorbent long loops",
-      "Five colours designed to mix and match",
-      "Monogramming available",
-    ],
-    material: "100% cotton, 650gsm",
-    care: "Machine wash warm with like colours. Avoid fabric softener. Tumble dry low for maximum fluff.",
-    pattern: "plain",
-    colours: [C.white, C.sandstone, C.sage, C.ironbark, C.coral],
-    sizes: [
-      { label: "Hand towel 50×90cm", price: 1995 },
-      { label: "Bath towel 70×140cm", price: 3995 },
-      { label: "Bath sheet 90×160cm", price: 5495 },
-    ],
-    bestseller: true,
-    monogramable: true,
-    reviews: [
-      { name: "Linda", location: "Norwood, SA", rating: 5, title: "So soft", body: "Bought the full set in Sage for our guest room. Guests keep asking where they're from." },
-      { name: "Marcus", location: "Hobart, TAS", rating: 5, title: "Great value", body: "Better than the department store towels at twice the price." },
-    ],
-  },
-  // ─── Hand towels ─────────────────────────────────────────────
-  {
-    slug: "kingscliff-face-washers",
-    name: "Kingscliff Face Washers (Set of 4)",
+    slug: "hand-towel-pair",
+    name: "Hand Towel Pair",
     category: "towels",
     collection: "hand-towels",
-    tagline: "Four soft face washers in a mixed or matching set.",
-    description:
-      "Small but mighty. These plush face washers are the same 650gsm cotton as our Everyday towels, cut to a handy 30×30cm with a hanging loop on each.",
-    details: ["Set of four", "650gsm cotton", "30×30cm each", "Hanging loop on every washer"],
-    material: "100% cotton, 650gsm",
-    care: "Machine wash warm. Tumble dry low.",
-    pattern: "plain",
-    colours: [C.white, C.sage, C.sandstone],
-    sizes: [{ label: "Set of 4 · 30×30cm", price: 2295 }],
+    tagline: "Two hand towels for the basin or the guest bathroom.",
+    description: "Cut from the same 600gsm cotton as our Everyday towel, sold as a pair.",
+    details: ["Set of two", "50 × 90cm each", "600gsm cotton"],
+    material: "100% cotton, 600gsm",
+    care: TOWEL_CARE,
+    colours: [
+      { name: "White", hex: "#F3F1EC", images: [["1620000190821-abd8f262b86f", "White hand towel on a ring against stone"]] },
+      { name: "Charcoal", hex: "#3B3B3D", images: [["1616663717839-2fea42e1a1f6", "Charcoal and white towels hanging by a bath"]] },
+    ],
+    sizes: [{ label: "Pair · 50 × 90cm", price: 3500, compareAt: 4400 }],
+    monogramable: true,
   },
   {
-    slug: "guest-towel-pair",
-    name: "Stripe Guest Towel Pair",
+    slug: "face-washer-set",
+    name: "Face Washer Set",
     category: "towels",
     collection: "hand-towels",
-    tagline: "A pair of striped hand towels for the powder room.",
-    description:
-      "The Coogee stripe in a smaller size, sold as a pair. Hang them by the basin or roll them in a basket for guests.",
-    details: ["Set of two hand towels", "600gsm Turkish cotton", "50×90cm each"],
-    material: "100% Turkish cotton, 600gsm",
-    care: "Machine wash warm. Line dry in the shade.",
-    pattern: "stripe",
-    colours: [C.harbour, C.ochre, C.eucalypt],
-    sizes: [{ label: "Pair · 50×90cm", price: 3995, compareAt: 4990 }],
-    monogramable: true,
+    tagline: "Four face washers with hanging loops.",
+    description: "Small, soft, and the towel that gets used most. Four 30 × 30cm washers in one colour.",
+    details: ["Set of four", "30 × 30cm each", "Hanging loop on each"],
+    material: "100% cotton, 600gsm",
+    care: TOWEL_CARE,
+    colours: [{ name: "Forest", hex: "#2E4A39", images: [["1574421233376-06f2ccf017f7", "Forest green and white face washers folded"]] }],
+    sizes: [{ label: "Set of 4 · 30 × 30cm", price: 2400 }],
   },
-  // ─── Beach towels ────────────────────────────────────────────
+  // ── Beach towels ────────────────────────────────────────────
   {
-    slug: "bondi-beach-towel",
-    name: "Bondi Beach Towel",
+    slug: "pool-stripe-beach-towel",
+    name: "Pool Stripe Beach Towel",
     category: "towels",
     collection: "beach-towels",
-    tagline: "Flat-woven so sand shakes straight off. Big enough for two.",
+    tagline: "Thick cabana-stripe terry, long enough for a banana lounge.",
     description:
-      "Our answer to the sandy car boot. The flat jacquard weave doesn't trap sand the way terry loops do — one shake and it's clean. It's light enough to throw in a tote and dries in the time it takes to eat a Paddle Pop.",
-    details: [
-      "Sand-shedding flat weave",
-      "Oversized 90×180cm",
-      "Quick-drying and lightweight",
-      "Folds down small for bags and suitcases",
-    ],
-    material: "Cotton-linen blend flat weave",
-    care: "Machine wash cold. Line dry. Rinse after salt water to keep colours bright.",
-    pattern: "stripe",
-    colours: [C.harbour, C.coral, C.wattle],
-    sizes: [{ label: "Beach towel 90×180cm", price: 5995 }],
-    bestseller: true,
-    featured: true,
-    monogramable: true,
-    reviews: [
-      { name: "Chloe", location: "Manly, NSW", rating: 5, title: "Sand really does come off", body: "Was sceptical but it's true — shook it at the car and there was nothing left. Kids fight over the Wattle one." },
-      { name: "Ben", location: "Scarborough, WA", rating: 5, title: "Beach essential", body: "Dries so fast. Took it to Bali and back, still looks new." },
-    ],
-  },
-  {
-    slug: "byron-fouta-towel",
-    name: "Byron Fouta Towel",
-    category: "towels",
-    collection: "beach-towels",
-    tagline: "A fringed Turkish peshtemal. Towel, sarong, picnic rug.",
-    description:
-      "Hand-loomed in the traditional peshtemal style, the Byron is thin, strong and ridiculously versatile. Use it as a beach towel, a sarong, a throw on the couch or a picnic blanket at the Sunday markets.",
-    details: [
-      "Traditional hand-loomed peshtemal",
-      "Hand-knotted fringe",
-      "Thin, strong and quick-drying",
-      "Doubles as a sarong, throw or picnic rug",
-    ],
-    material: "100% Turkish cotton",
-    care: "Machine wash cold on a gentle cycle. Line dry. It gets softer and more absorbent with every wash.",
-    pattern: "fouta",
-    colours: [C.ocean, C.terracotta, C.olive],
-    sizes: [{ label: "100×180cm", price: 5495 }],
-    isNew: true,
-  },
-  {
-    slug: "rottnest-oversized-beach-towel",
-    name: "Rottnest Oversized Beach Towel",
-    category: "towels",
-    collection: "beach-towels",
-    tagline: "Extra-long plush terry for serious sunbaking.",
-    description:
-      "For those who like their beach towel thick and their lie-downs long. The Rottnest is a plush 500gsm terry at a full two metres long, with a bold woven band at each end.",
-    details: ["Extra-long 100×200cm", "500gsm cotton terry", "Woven end bands", "Handy hanging loop"],
+      "A proper plush beach towel at 90 × 180cm with a wide woven stripe. Heavier than our flat-weave, so better for the pool than a long beach walk.",
+    details: ["500gsm cotton terry", "90 × 180cm", "Woven cabana stripe"],
     material: "100% cotton terry, 500gsm",
-    care: "Machine wash warm. Line dry in the shade to keep colours bright.",
-    pattern: "stripe",
-    colours: [C.pinklake, C.seafoam, C.ochre],
-    sizes: [{ label: "100×200cm", price: 6995 }],
+    care: "Rinse in fresh water after salt or chlorine. Wash warm, line dry in the shade.",
+    colours: [
+      { name: "Sky Stripe", hex: "#7EA6D4", accent: "#F4F6F8", images: [["1764114656382-6ad79e1a6b42", "Sky blue striped towel on a pool lounger"], ["1562953223-1b8b9e9870b4", "Striped towel on the sand"]] },
+    ],
+    sizes: [{ label: "90 × 180cm", price: 5900 }],
+    bestseller: true,
     monogramable: true,
+    reviews: [{ name: "Ben", location: "Scarborough WA", rating: 5, title: "Big and thick", body: "Fits the whole sun lounge. Takes a while to dry, but that's the trade-off for this thickness." }],
   },
-  // ─── Bath mats ───────────────────────────────────────────────
   {
-    slug: "cloud-bath-mat",
-    name: "Cloud Bath Mat",
+    slug: "flat-weave-beach-towel",
+    name: "Flat-Weave Beach Towel",
+    category: "towels",
+    collection: "beach-towels",
+    tagline: "Light, quick-drying, and sand shakes straight off.",
+    description:
+      "No loops for sand to get stuck in. It folds down to nothing, dries in an hour in the sun, and doubles as a picnic rug.",
+    details: ["Flat cotton weave", "Sand shakes off", "Dries in about an hour in the sun", "Knotted fringe"],
+    material: "100% cotton flat weave",
+    care: "Wash cold and line dry. Gets softer with every wash.",
+    colours: [
+      { name: "Indigo Stripe", hex: "#3E5EA6", accent: "#F4F2EC", images: [["1760783320488-9af5d3217f50", "White towel with indigo stripes on coastal rocks"]] },
+    ],
+    shared: [["1716222165030-134497641aef", "Towel laid out on an empty beach"]],
+    sizes: [{ label: "90 × 170cm", price: 5500 }],
+  },
+  {
+    slug: "turkish-towel",
+    name: "Turkish Towel",
+    category: "towels",
+    collection: "beach-towels",
+    tagline: "Hand-loomed peshtemal. Beach towel, sarong or throw.",
+    description:
+      "Thin, strong and quick to dry, with a hand-knotted fringe. It takes up almost no room in a bag, and it gets softer and more absorbent the more you wash it.",
+    details: ["Hand-loomed", "Hand-knotted fringe", "100 × 180cm", "Packs very small"],
+    material: "100% Turkish cotton",
+    care: "Wash cold on a gentle cycle. Line dry. Don't tumble dry, which frays the fringe.",
+    colours: [
+      { name: "Natural", hex: "#E4DAC7", images: [["1684248655527-46bee8e79029", "Rolled natural Turkish towels with fringe"], ["1719957770743-5040a9ed16d7", "Stack of natural Turkish towels"]] },
+      { name: "Rose Stripe", hex: "#E0B3AE", accent: "#F6F1EA", images: [["1686125429003-f552c9f16504", "Rose striped Turkish towel with flowers on the sand"]] },
+    ],
+    shared: [["1703011512873-821e62ec001a", "Turkish towels hanging on a rack"]],
+    sizes: [{ label: "100 × 180cm", price: 4900 }],
+    isNew: true,
+  },
+  // ── Bath mats ───────────────────────────────────────────────
+  {
+    slug: "chenille-bath-mat",
+    name: "Chenille Bath Mat",
     category: "rugs",
     collection: "bath-mats",
-    tagline: "Thick tufted cotton with a non-slip backing.",
-    description:
-      "Step out of the shower onto something that feels like a cloud. Deep tufted cotton soaks up drips, and the latex-free non-slip backing keeps it where you left it on wet tiles.",
-    details: ["Thick tufted cotton pile", "Latex-free non-slip backing", "Machine washable", "50×80cm"],
-    material: "100% cotton pile, TPR non-slip backing",
-    care: "Machine wash cold, gentle. Line dry — do not tumble dry, as heat damages the backing.",
-    pattern: "plain",
-    colours: [C.white, C.sage, C.clay],
-    sizes: [{ label: "50×80cm", price: 3995 }],
+    tagline: "Deep chenille pile that soaks up water quickly.",
+    description: "Thick, soft chenille loops on a non-slip backing. Throw it in the washing machine when it needs it.",
+    details: ["Chenille pile", "Non-slip backing", "Machine washable", "50 × 80cm"],
+    material: "Cotton-blend chenille, TPR backing",
+    care: "Machine wash cold, gentle. Line dry. Don't tumble dry, as heat damages the backing.",
+    colours: [
+      { name: "White", hex: "#F1EFEA", images: [["1681742308509-e32e0a7c2cb8", "Close-up of white chenille bath mat"]] },
+      { name: "Lagoon", hex: "#2BA3B8", images: [["1588425737388-0a32c46bd842", "Close-up of lagoon blue chenille bath mat"]] },
+    ],
+    sizes: [{ label: "50 × 80cm", price: 3900 }],
     bestseller: true,
   },
   {
-    slug: "ribbed-bath-mat",
-    name: "Ribbed Cotton Bath Mat",
+    slug: "memory-foam-bath-mat",
+    name: "Memory Foam Bath Mat",
     category: "rugs",
     collection: "bath-mats",
-    tagline: "A reversible ribbed mat that dries flat and fast.",
-    description:
-      "A thinner, reversible mat woven in chunky ribs. It lies flat, dries fast and suits bathrooms where the door needs to swing over it.",
-    details: ["Reversible", "Thin enough to fit under doors", "Machine washable", "55×85cm"],
-    material: "100% cotton",
-    care: "Machine wash warm. Tumble dry low.",
-    pattern: "stripe",
-    colours: [C.saltpan, C.charcoal],
-    sizes: [{ label: "55×85cm", price: 3495 }],
+    tagline: "Cushioned and low enough for the door to swing over.",
+    description: "A soft microfibre top over memory foam, with a grippy base. Low profile, so it works in front of the shower or the vanity.",
+    details: ["Memory foam core", "Non-slip base", "Low profile", "50 × 80cm"],
+    material: "Microfibre top, memory foam core",
+    care: "Machine wash cold, gentle. Air dry flat.",
+    colours: [{ name: "Grey", hex: "#6E7176", images: [["1687526360728-f1af24aac201", "Grey memory foam bath mat on a tiled floor"]] }],
+    sizes: [{ label: "50 × 80cm", price: 3500 }],
   },
-  // ─── Area rugs ───────────────────────────────────────────────
+  // ── Area rugs ───────────────────────────────────────────────
   {
-    slug: "kimberley-wool-rug",
-    name: "Kimberley Hand-Woven Wool Rug",
+    slug: "braided-jute-rug",
+    name: "Braided Jute Rug",
     category: "rugs",
     collection: "area-rugs",
-    tagline: "A hand-woven wool rug in the colours of the north-west.",
+    tagline: "Hand-braided natural jute. Warm, textured and hard-wearing.",
     description:
-      "The deep ochres and red earth of the Kimberley, hand-woven in thick New Zealand wool. Wool is naturally stain-resistant and flame-retardant, and it'll outlast every synthetic rug you've owned. This is a rug to keep.",
-    details: [
-      "Hand-woven by artisans",
-      "Thick New Zealand wool pile",
-      "Naturally stain-resistant and hard-wearing",
-      "Finished with a hand-knotted fringe",
-      "Some shedding in the first months is normal",
-    ],
-    material: "80% New Zealand wool, 20% cotton warp",
-    care: "Vacuum weekly without the beater bar. Blot spills immediately — never rub. Professional clean yearly. Rotate every six months so it wears evenly.",
-    pattern: "diamond",
-    colours: [C.redearth, C.charcoal],
+      "Jute is a fast-growing, biodegradable plant fibre with a coarse, warm texture. It suits living rooms and bedrooms. Keep it away from bathrooms and wet areas.",
+    details: ["Hand-braided jute", "Low pile", "Best for dry, low-to-medium traffic areas", "Use with an underlay on hard floors"],
+    material: "100% jute",
+    care: "Vacuum regularly. Blot spills straight away with a dry cloth. Don't steam clean or shampoo.",
+    colours: [{ name: "Natural", hex: "#C3A57A", images: [["1778088442792-29c430a4c93f", "Braided jute rug under a tan leather sofa"]] }],
     sizes: [
-      { label: "160×230cm", price: 59900 },
-      { label: "200×300cm", price: 89900 },
+      { label: "160 × 230cm", price: 38900 },
+      { label: "200 × 300cm", price: 59900 },
     ],
+    bestseller: true,
     featured: true,
     reviews: [
-      { name: "Sophie", location: "Broome, WA", rating: 5, title: "Stunning", body: "Even more beautiful in person. Feels incredible underfoot and the colour is perfect in our living room." },
-      { name: "Daniel", location: "Fitzroy, VIC", rating: 4, title: "Beautiful rug, shed a bit", body: "Shed a lot the first month (they warned me) but it's settled now. Quality is obvious." },
+      { name: "Olivia", location: "Brunswick Heads NSW", rating: 5, title: "Great texture", body: "Looks more expensive than it was. Smelled a bit earthy for the first week." },
+      { name: "Aaron", location: "Canberra ACT", rating: 4, title: "Sheds a little", body: "Some fibres on the floor when you vacuum. Expected with jute." },
     ],
   },
   {
-    slug: "nullarbor-jute-rug",
-    name: "Nullarbor Jute Rug",
+    slug: "round-jute-rug",
+    name: "Round Jute Rug",
     category: "rugs",
     collection: "area-rugs",
-    tagline: "Natural hand-braided jute with a contrast border.",
-    description:
-      "Wide open, warm and grounding — like the plain it's named after. Braided from natural jute fibre with a woven cotton border, the Nullarbor adds texture to any room and looks better the more it's lived on.",
-    details: [
-      "Hand-braided natural jute",
-      "Contrast cotton border",
-      "Biodegradable, renewable fibre",
-      "Best for low-to-medium traffic, dry areas",
+    tagline: "A braided round rug for reading corners and entryways.",
+    description: "Tightly braided jute in a round shape. Good under a small table, beside a bed, or anywhere a rectangle feels too formal.",
+    details: ["Hand-braided jute", "Round", "Three sizes"],
+    material: "100% jute",
+    care: "Vacuum regularly. Blot spills with a dry cloth. Keep out of damp areas.",
+    colours: [
+      { name: "Natural", hex: "#C9A874", images: [["1762758889413-64d717f81b0d", "Round jute rug half rolled on a timber floor"], ["1762280237553-e58441808e0c", "Round jute rug under an armchair"]] },
+      { name: "Espresso", hex: "#4E3A2B", images: [["1774574073159-7f1e4b9ca786", "Cat sitting on an espresso round jute rug"]] },
     ],
-    material: "100% natural jute, cotton border",
-    care: "Vacuum regularly. Jute doesn't love water — blot spills with a dry cloth and avoid steam cleaning. Keep out of damp areas.",
-    pattern: "border",
-    colours: [C.jute, C.jutewhite],
     sizes: [
-      { label: "120×170cm", price: 24900 },
-      { label: "160×230cm", price: 44900 },
-      { label: "200×300cm", price: 69900 },
-    ],
-    bestseller: true,
-    reviews: [
-      { name: "Olivia", location: "Brunswick Heads, NSW", rating: 5, title: "Exactly what I wanted", body: "Great texture, lovely natural colour. The border makes it look much more expensive." },
-      { name: "Aaron", location: "Canberra, ACT", rating: 4, title: "Solid rug", body: "Has a natural smell for the first week which faded. Would buy again." },
+      { label: "120cm round", price: 16900 },
+      { label: "150cm round", price: 22900 },
+      { label: "180cm round", price: 31900 },
     ],
   },
   {
-    slug: "daintree-flatweave-rug",
-    name: "Daintree Washable Flatweave Rug",
+    slug: "kilim-flatweave-rug",
+    name: "Kilim Flatweave Rug",
     category: "rugs",
     collection: "area-rugs",
-    tagline: "A cotton flatweave you can throw in the washing machine.",
+    tagline: "A hand-woven wool kilim with a knotted fringe.",
     description:
-      "Designed for families, pets and people who spill things. The Daintree is a reversible cotton flatweave light enough for most front-loaders, so red wine and muddy paws are a wash cycle away from gone.",
-    details: [
-      "Machine washable (120×180 size in most front-loaders)",
-      "Reversible for twice the wear",
-      "Soft cotton flatweave",
-      "Use with a rug underlay on hard floors",
+      "Traditional flat-woven wool in blues, reds and cream. Reversible, light enough to move around, and patterned enough to hide a lot of life.",
+    details: ["Hand-woven wool", "Reversible", "Knotted fringe", "Each one varies slightly"],
+    material: "Wool pile on a cotton warp",
+    care: "Vacuum without the beater bar. Blot spills. Rotate every six months. Professional clean once a year.",
+    colours: [
+      { name: "Multi", hex: "#3C5E8A", accent: "#B23A2E", images: [["1594040226829-7f251ab46d80", "Kilim rug with fringe on a light floor"], ["1606885118474-c8baf907e998", "Close-up of the kilim weave"]] },
     ],
-    material: "100% cotton flatweave",
-    care: "Machine wash cold, gentle, in a large-capacity machine. Line dry flat in the shade. Larger sizes may need a laundromat.",
-    pattern: "stripe",
-    colours: [C.rainforest, C.dusk],
     sizes: [
-      { label: "120×180cm", price: 21900 },
-      { label: "160×230cm", price: 34900 },
+      { label: "120 × 180cm", price: 28900 },
+      { label: "160 × 230cm", price: 45900 },
+    ],
+    featured: true,
+    reviews: [{ name: "Sophie", location: "Broome WA", rating: 5, title: "Better in person", body: "The colours are richer than the photos. Really well made." }],
+  },
+  {
+    slug: "indigo-flatweave-rug",
+    name: "Indigo Flatweave Rug",
+    category: "rugs",
+    collection: "area-rugs",
+    tagline: "A washable cotton flatweave in deep indigo.",
+    description:
+      "Reversible cotton with a fine texture and a short fringe. The 160 × 230 fits most large front-loaders, so spills are a wash cycle away from gone.",
+    details: ["Cotton flatweave", "Reversible", "Machine washable (check your drum size)", "Short fringe"],
+    material: "100% cotton",
+    care: "Machine wash cold, gentle, in a large-capacity machine. Dry flat in the shade.",
+    colours: [{ name: "Indigo", hex: "#2D4C84", images: [["1759146464279-af282e1d2c73", "Indigo flatweave rug on a timber floor"]] }],
+    sizes: [
+      { label: "160 × 230cm", price: 32900 },
+      { label: "200 × 290cm", price: 47900 },
     ],
     isNew: true,
   },
   {
-    slug: "harbour-check-rug",
-    name: "Harbour Check Rug",
+    slug: "geometric-flatweave-rug",
+    name: "Geometric Flatweave Rug",
     category: "rugs",
     collection: "area-rugs",
-    tagline: "A soft wool-blend check that works in every room.",
-    description:
-      "A relaxed hand-loomed check in a soft wool and cotton blend. Calm enough for bedrooms, tough enough for the living room.",
-    details: ["Hand-loomed", "Wool and cotton blend", "Low pile — doors swing over easily"],
-    material: "70% wool, 30% cotton",
-    care: "Vacuum weekly without the beater bar. Spot clean with mild wool detergent.",
-    pattern: "check",
-    colours: [{ ...C.harbour, accent: "#EFE8DC" }, { ...C.sage, accent: "#F7F4EC" }],
-    sizes: [
-      { label: "160×230cm", price: 47900 },
-      { label: "200×290cm", price: 69900 },
-    ],
-  },
-  // ─── Runners ─────────────────────────────────────────────────
-  {
-    slug: "mallee-hallway-runner",
-    name: "Mallee Hallway Runner",
-    category: "rugs",
-    collection: "runners",
-    tagline: "A long wool runner for hardworking hallways.",
-    description:
-      "Named for the tough little eucalypts of the Mallee. A dense wool runner built for the busiest strip of floor in the house — from the front door to the kitchen.",
-    details: ["Dense wool pile", "Two lengths to suit most hallways", "Hand-knotted fringe"],
-    material: "100% New Zealand wool",
-    care: "Vacuum weekly. Blot spills immediately. Rotate end-to-end every few months.",
-    pattern: "stripe",
-    colours: [C.ochre, C.eucalypt],
-    sizes: [
-      { label: "80×300cm", price: 22900 },
-      { label: "80×400cm", price: 29900 },
-    ],
-    reviews: [
-      { name: "Grace", location: "Subiaco, WA", rating: 5, title: "Perfect for our long hallway", body: "The 4m length fits our federation hallway perfectly. Colour is spot on." },
-    ],
+    tagline: "Hand-drawn black lines on ivory wool.",
+    description: "A simple zigzag pattern that works in new and old homes alike. Flat-woven, so doors swing over it easily.",
+    details: ["Flat-woven wool", "Low profile", "Hand-finished edges"],
+    material: "Wool and cotton blend",
+    care: "Vacuum without the beater bar. Spot clean with wool detergent.",
+    colours: [{ name: "Ivory / Black", hex: "#E9E5DC", accent: "#1F1F1F", images: [["1773423868661-44a3e7701ebb", "Ivory and black geometric flatweave rug"]] }],
+    sizes: [{ label: "160 × 230cm", price: 39900 }],
   },
   {
-    slug: "coastline-washable-runner",
-    name: "Coastline Washable Runner",
+    slug: "brushstroke-rug",
+    name: "Brushstroke Rug",
+    category: "rugs",
+    collection: "area-rugs",
+    tagline: "Ink-black strokes on a soft ivory ground.",
+    description: "Graphic without being loud. A dense, hand-tufted wool rug that's soft enough to sit on.",
+    details: ["Hand-tufted wool", "Medium pile", "Felt backing"],
+    material: "Wool pile, cotton backing",
+    care: "Vacuum without the beater bar. New wool rugs shed for the first few months.",
+    colours: [{ name: "Ivory / Ink", hex: "#EEEBE4", accent: "#1C2430", images: [["1762356317094-5826049a3641", "Ivory rug with black brushstroke rectangles"]] }],
+    sizes: [{ label: "160 × 230cm", price: 44900 }],
+    isNew: true,
+  },
+  {
+    slug: "cloud-shag-rug",
+    name: "Cloud Shag Rug",
+    category: "rugs",
+    collection: "area-rugs",
+    tagline: "Deep, soft pile you'll want to lie on.",
+    description: "A plush cream shag for bedrooms and living rooms. Soft underfoot, and it quietens a room with hard floors.",
+    details: ["Deep pile", "Soft underfoot", "Best in low-traffic rooms"],
+    material: "Polyester shag, cotton backing",
+    care: "Vacuum with suction only. Shake out outdoors. Spot clean.",
+    colours: [
+      { name: "Cream", hex: "#E8DFD0", images: [["1778936317684-291cfdbad2b5", "Cream shag rug in a light living room"], ["1745589720030-c32f81367a57", "Close-up of the shag pile in sunlight"]] },
+    ],
+    sizes: [
+      { label: "160 × 230cm", price: 49900 },
+      { label: "200 × 300cm", price: 74900 },
+    ],
+  },
+  // ── Runners ─────────────────────────────────────────────────
+  {
+    slug: "textured-runner",
+    name: "Textured Hallway Runner",
     category: "rugs",
     collection: "runners",
-    tagline: "Machine-washable runner for kitchens and entries.",
-    description:
-      "A slim, washable cotton runner for the spots that get grubby fastest — the kitchen sink, the back door, the laundry.",
-    details: ["Machine washable", "Non-slip underlay recommended", "Low profile"],
-    material: "100% cotton",
-    care: "Machine wash cold, gentle. Line dry flat.",
-    pattern: "diamond",
-    colours: [C.saltpan, C.harbour],
+    tagline: "A neutral loop-pile runner for the busiest strip of floor.",
+    description: "Dense and hard-wearing, in an oatmeal tone that hides dust and footprints. Two lengths to fit most hallways.",
+    details: ["Loop pile", "Two lengths", "Use with a non-slip underlay"],
+    material: "Wool and viscose blend",
+    care: "Vacuum weekly. Rotate end to end every few months.",
+    colours: [{ name: "Oatmeal", hex: "#CFC4B2", images: [["1766052409111-0bd046af4be1", "Oatmeal textured runner on a timber floor"]] }],
     sizes: [
-      { label: "70×200cm", price: 14900 },
-      { label: "70×300cm", price: 19900 },
+      { label: "80 × 300cm", price: 21900 },
+      { label: "80 × 400cm", price: 27900 },
     ],
+    reviews: [{ name: "Grace", location: "Subiaco WA", rating: 5, title: "Fits our hallway", body: "The 4m length suits our old federation hallway. Doesn't show dirt." }],
+  },
+  {
+    slug: "painted-stripe-runner",
+    name: "Painted Stripe Runner",
+    category: "rugs",
+    collection: "runners",
+    tagline: "Blocks of ochre, rust and ink on a pale ground.",
+    description: "A runner with some personality. Flat-woven, reversible, and easy to lift and shake out.",
+    details: ["Flat-woven", "Reversible", "70cm wide"],
+    material: "Cotton and wool",
+    care: "Vacuum regularly. Spot clean. Dry clean if needed.",
+    colours: [{ name: "Ochre Multi", hex: "#D6A43A", accent: "#8A3C22", images: [["1765802536365-e2267a489a2c", "Runner with ochre, rust and black stripes"]] }],
+    sizes: [{ label: "70 × 300cm", price: 24900 }],
+    isNew: true,
   },
 ];
 
-// Deterministic "stock levels" so the demo shows in-stock, low-stock and sold-out states.
+// Deterministic stock so the demo shows in-stock, low-stock and sold-out.
 function stockFor(i: number, j: number) {
   const n = (i * 7 + j * 13) % 23;
   if (n === 5) return 0;
-  if (n < 4) return 3;
-  return 10 + n * 2;
+  if (n < 3) return 3;
+  return 8 + n * 2;
 }
 
-function skuPart(s: string) {
-  return s.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase();
-}
+const skuPart = (s: string) => s.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase();
 
 async function main() {
   for (const [i, p] of products.entries()) {
-    const { colours, sizes, reviews, details, ...rest } = p;
+    const { colours, sizes, reviews, details, shared, ...rest } = p;
     const data = { ...rest, details: JSON.stringify(details) };
-    const product = await prisma.product.upsert({
-      where: { slug: p.slug },
-      create: data,
-      update: data,
-    });
+    const product = await prisma.product.upsert({ where: { slug: p.slug }, create: data, update: data });
 
-    await prisma.variant.deleteMany({
-      where: { productId: product.id, orderItems: { none: {} } },
-    });
+    await prisma.productImage.deleteMany({ where: { productId: product.id } });
+    let order = 0;
+    for (const c of colours) {
+      for (const [id, alt] of c.images) {
+        await prisma.productImage.create({
+          data: { productId: product.id, url: u(id), alt, colourName: c.name, credit: "Unsplash", sortOrder: order++ },
+        });
+      }
+    }
+    for (const [id, alt] of shared ?? []) {
+      await prisma.productImage.create({ data: { productId: product.id, url: u(id), alt, credit: "Unsplash", sortOrder: 100 + order++ } });
+    }
+
+    // Upsert by SKU so variant ids (and anyone's cart) survive a reseed
+    const skus: string[] = [];
     let j = 0;
-    for (const colour of colours) {
-      for (const size of sizes) {
-        const sku = `WW-${skuPart(p.slug)}-${skuPart(colour.name)}-${skuPart(size.label)}-${i}${j}`;
+    for (const c of colours) {
+      for (const s of sizes) {
+        const sku = `SB-${skuPart(p.slug)}-${skuPart(c.name)}-${skuPart(s.label.replace(/^\D+/, ""))}`;
+        skus.push(sku);
+        const v = {
+          colourName: c.name,
+          colourHex: c.hex,
+          accentHex: c.accent ?? c.hex,
+          size: s.label,
+          priceCents: s.price,
+          compareAtCents: s.compareAt ?? null,
+          sortOrder: j,
+        };
         await prisma.variant.upsert({
           where: { sku },
-          create: {
-            productId: product.id,
-            sku,
-            colourName: colour.name,
-            colourHex: colour.hex,
-            accentHex: colour.accent,
-            size: size.label,
-            priceCents: size.price,
-            compareAtCents: size.compareAt ?? null,
-            stock: stockFor(i, j),
-            sortOrder: j,
-          },
-          update: { priceCents: size.price, compareAtCents: size.compareAt ?? null },
+          create: { ...v, productId: product.id, sku, stock: stockFor(i, j) },
+          update: v,
         });
         j++;
       }
     }
+    await prisma.variant.deleteMany({ where: { productId: product.id, sku: { notIn: skus }, orderItems: { none: {} } } });
 
-    await prisma.review.deleteMany({ where: { productId: product.id } });
-    for (const [k, r] of (reviews ?? []).entries()) {
-      await prisma.review.create({
-        data: {
-          ...r,
-          productId: product.id,
-          approved: true,
-          createdAt: new Date(Date.now() - (k * 17 + i * 3 + 4) * 86400000),
-        },
-      });
+    // Only ever touch the sample reviews below; real customer reviews are left alone
+    for (const r of reviews ?? []) {
+      await prisma.review.deleteMany({ where: { productId: product.id, name: r.name, title: r.title } });
+    }
+    if (SEED_REVIEWS) {
+      for (const [k, r] of (reviews ?? []).entries()) {
+        await prisma.review.create({
+          data: { ...r, productId: product.id, approved: true, createdAt: new Date(Date.now() - (k * 19 + i * 3 + 6) * 86400000) },
+        });
+      }
     }
   }
+
+  // Drop products no longer in the catalogue (unless they've been ordered)
+  await prisma.product.deleteMany({ where: { slug: { notIn: products.map((p) => p.slug) }, orderItems: { none: {} } } });
 
   await prisma.discountCode.upsert({
     where: { code: "WELCOME10" },
@@ -501,7 +490,7 @@ async function main() {
     update: {},
   });
 
-  console.log(`Seeded ${products.length} products.`);
+  console.log(`Seeded ${products.length} products${SEED_REVIEWS ? " with demo reviews" : ""}.`);
 }
 
 main()
