@@ -30,7 +30,7 @@ type Size = { label: string; price: number; compareAt?: number };
 type Seed = {
   slug: string;
   name: string;
-  category: "towels" | "rugs";
+  category: "bath" | "bedding" | "rugs" | "leather";
   collection: string;
   tagline: string;
   description: string;
@@ -56,7 +56,7 @@ const products: Seed[] = [
   {
     slug: "everyday-bath-towel",
     name: "Everyday Bath Towel",
-    category: "towels",
+    category: "bath",
     collection: "bath-towels",
     tagline: "Heavy cotton terry. Soft from the first wash and still soft years later.",
     description:
@@ -87,7 +87,7 @@ const products: Seed[] = [
   {
     slug: "stripe-bath-towel",
     name: "Stripe Bath Towel",
-    category: "towels",
+    category: "bath",
     collection: "bath-towels",
     tagline: "A wide navy stripe, woven in rather than printed.",
     description:
@@ -110,7 +110,7 @@ const products: Seed[] = [
   {
     slug: "waffle-towel",
     name: "Waffle Towel",
-    category: "towels",
+    category: "bath",
     collection: "bath-towels",
     tagline: "Lightweight waffle weave that dries fast in humid bathrooms.",
     description:
@@ -137,7 +137,7 @@ const products: Seed[] = [
   {
     slug: "hand-towel-pair",
     name: "Hand Towel Pair",
-    category: "towels",
+    category: "bath",
     collection: "hand-towels",
     tagline: "Two hand towels for the basin or the guest bathroom.",
     description: "Cut from the same 600gsm cotton as our Everyday towel, sold as a pair.",
@@ -154,7 +154,7 @@ const products: Seed[] = [
   {
     slug: "face-washer-set",
     name: "Face Washer Set",
-    category: "towels",
+    category: "bath",
     collection: "hand-towels",
     tagline: "Four face washers with hanging loops.",
     description: "Small, soft, and the towel that gets used most. Four 30 × 30cm washers in one colour.",
@@ -168,7 +168,7 @@ const products: Seed[] = [
   {
     slug: "pool-stripe-beach-towel",
     name: "Pool Stripe Beach Towel",
-    category: "towels",
+    category: "bath",
     collection: "beach-towels",
     tagline: "Thick cabana-stripe terry, long enough for a banana lounge.",
     description:
@@ -187,7 +187,7 @@ const products: Seed[] = [
   {
     slug: "flat-weave-beach-towel",
     name: "Flat-Weave Beach Towel",
-    category: "towels",
+    category: "bath",
     collection: "beach-towels",
     tagline: "Light, quick-drying, and sand shakes straight off.",
     description:
@@ -204,7 +204,7 @@ const products: Seed[] = [
   {
     slug: "turkish-towel",
     name: "Turkish Towel",
-    category: "towels",
+    category: "bath",
     collection: "beach-towels",
     tagline: "Hand-loomed peshtemal. Beach towel, sarong or throw.",
     description:
@@ -411,6 +411,369 @@ const products: Seed[] = [
     sizes: [{ label: "70 × 300cm", price: 24900 }],
     isNew: true,
   },
+  // ── Quilts ──────────────────────────────────────────────────
+  {
+    slug: "merino-wool-quilt",
+    name: "Australian Merino Wool Quilt",
+    category: "bedding",
+    collection: "quilts",
+    tagline: "Merino wool fill in a cotton sateen shell. Warm in winter, never clammy.",
+    description:
+      "Wool breathes and moves moisture away from you, so you sleep warm without overheating. Filled with Australian merino wool at 500gsm, the all-season weight for most of the country, and stitched in boxes so the fill stays put.",
+    details: ["Australian merino wool fill", "500gsm all-season weight", "Cotton sateen shell", "Box-stitched to stop the fill shifting", "Corner ties for your quilt cover"],
+    material: "Fill: 100% Australian merino wool. Shell: 100% cotton sateen",
+    care: "Air it in the shade every few weeks. Spot clean the shell. Professional wool clean when needed; do not machine wash.",
+    colours: [
+      { name: "White", hex: "#F4F2EC", images: [["1506720186575-11354d325017", "White wool quilt on a low bed by the window"], ["1517912181842-e5a9d4701a4e", "Wool quilt on a timber bed in soft light"], ["1542728929-2b5d9a0c8d48", "Close-up of the quilt's cotton sateen shell"]] },
+    ],
+    sizes: [
+      { label: "Single 140 × 210cm", price: 22900 },
+      { label: "Double 180 × 210cm", price: 26900 },
+      { label: "Queen 210 × 210cm", price: 29900 },
+      { label: "King 240 × 210cm", price: 34900 },
+      { label: "Super King 270 × 240cm", price: 39900 },
+    ],
+    bestseller: true,
+    featured: true,
+    reviews: [
+      { name: "Megan", location: "Ballarat VIC", rating: 5, title: "Best quilt we've owned", body: "Warm through a Ballarat winter but we don't wake up sweaty like we did with the down one." },
+      { name: "Rob", location: "Launceston TAS", rating: 5, title: "Worth it", body: "Heavier than I expected in a good way. Airs out quickly on the line." },
+    ],
+  },
+  {
+    slug: "bamboo-summer-quilt",
+    name: "Bamboo Summer Quilt",
+    category: "bedding",
+    collection: "quilts",
+    tagline: "A light 250gsm quilt for hot, humid nights.",
+    description:
+      "Bamboo-blend fill in a soft cotton shell, light enough for a Brisbane January and breathable enough to stay on the bed. Machine washable at home.",
+    details: ["Bamboo and polyester blend fill", "250gsm summer weight", "Cotton shell", "Machine washable"],
+    material: "Fill: 50% bamboo-derived viscose, 50% polyester. Shell: 100% cotton",
+    care: "Machine wash cold on a gentle cycle in a large-capacity machine. Line dry flat in the shade.",
+    colours: [
+      { name: "White", hex: "#F1F1EE", images: [["1688384452844-8364c3e2fc28", "Light bamboo quilt on a timber bed"], ["1601276174812-63280a55656e", "Summer quilt in afternoon sun"]] },
+    ],
+    sizes: [
+      { label: "Queen 210 × 210cm", price: 19900 },
+      { label: "King 240 × 210cm", price: 22900 },
+      { label: "Super King 270 × 240cm", price: 25900 },
+    ],
+    isNew: true,
+  },
+  // ── Bed linen ───────────────────────────────────────────────
+  {
+    slug: "french-linen-quilt-cover",
+    name: "French Linen Quilt Cover Set",
+    category: "bedding",
+    collection: "bed-linen",
+    tagline: "Stonewashed French flax linen. Soft from day one, and it only gets better.",
+    description:
+      "Woven from French-grown flax and stonewashed for a soft, lived-in feel. Linen is breathable in summer and holds warmth in winter. The set includes a quilt cover with hidden button closure and two matching standard pillowcases.",
+    details: ["100% French flax linen", "Stonewashed", "Quilt cover with hidden coconut-button closure", "Two standard pillowcases (48 × 73cm)", "Inner corner ties"],
+    material: "100% linen from French flax",
+    care: "Machine wash cold or warm on a gentle cycle. Line dry or tumble dry low. Linen is meant to look relaxed; no ironing needed.",
+    colours: [
+      { name: "White", hex: "#F3F1EB", images: [["1698746044395-85beb2b04522", "White linen quilt cover in a bright bedroom"], ["1597308451192-d17c89701ef5", "Close-up of white linen pillowcases"]] },
+      { name: "Stone", hex: "#B8B2A8", images: [["1564019472231-4586c552dc27", "Stone grey linen bedding, unmade"], ["1614617021766-d00d5d28b1ab", "Stone linen in low morning light"]] },
+      { name: "Sage", hex: "#7E8C74", images: [["1639813806536-11895df1ff64", "Sage linen bedding on a timber bed"], ["1640348307767-b8e8bc765ff5", "Sage linen quilt cover and pillows"]] },
+      { name: "Mocha", hex: "#8A7765", images: [["1619001904482-b0628b82b3e9", "Mocha linen quilt cover, rumpled"]] },
+    ],
+    sizes: [
+      { label: "Queen", price: 28900 },
+      { label: "King", price: 32900 },
+      { label: "Super King", price: 35900 },
+    ],
+    bestseller: true,
+    reviews: [
+      { name: "Alice", location: "Fremantle WA", rating: 5, title: "Softer than expected", body: "No break-in period at all. The Sage is a lovely muted green." },
+      { name: "James", location: "Paddington NSW", rating: 4, title: "Great linen, runs slightly big", body: "Quality is excellent. Our King cover is a touch generous on the quilt, which I actually prefer." },
+    ],
+  },
+  {
+    slug: "linen-sheet-set",
+    name: "Linen Sheet Set",
+    category: "bedding",
+    collection: "bed-linen",
+    tagline: "Flat sheet, fitted sheet and two pillowcases in stonewashed linen.",
+    description:
+      "The same French flax linen as our quilt covers. The fitted sheet has a 40cm wall with elastic all the way around, so it stays on thicker mattresses and toppers.",
+    details: ["100% French flax linen", "Fitted sheet with 40cm wall", "Flat sheet", "Two standard pillowcases"],
+    material: "100% linen from French flax",
+    care: "Machine wash cold or warm on a gentle cycle. Line dry or tumble dry low.",
+    colours: [
+      { name: "White", hex: "#F3F1EB", images: [["1617325247661-675ab4b64ae2", "White linen sheets on a timber bed with cushions"], ["1606855637183-ea2a00b6f15f", "White linen bed in a bright room"]] },
+      { name: "Oat", hex: "#E6DCC6", images: [["1634665810235-011d663754e7", "Close-up of oat linen sheet"], ["1653601983541-a70f6f1e715b", "Oat linen pillowcases by the window"]] },
+    ],
+    sizes: [
+      { label: "Queen", price: 24900 },
+      { label: "King", price: 27900 },
+    ],
+  },
+  {
+    slug: "mulberry-silk-pillowcase",
+    name: "Mulberry Silk Pillowcase",
+    category: "bedding",
+    collection: "bed-linen",
+    tagline: "22 momme mulberry silk. Kinder to hair and skin.",
+    description:
+      "Silk creates less friction than cotton, so there's less frizz and fewer creases in the morning. Made from 22 momme mulberry silk with a hidden zip.",
+    details: ["22 momme mulberry silk", "Hidden zip closure", "Standard size 48 × 73cm", "Sold individually, gift boxed"],
+    material: "100% mulberry silk, 22 momme",
+    care: "Hand wash cold or machine wash cold in a laundry bag with silk detergent. Dry flat in the shade.",
+    colours: [
+      { name: "Ivory", hex: "#EFE7D8", images: [["1606259457945-67dc66271ee6", "Ivory mulberry silk in soft folds"]] },
+      { name: "Silver", hex: "#C9C7C4", images: [["1620770511161-f36f500b60cd", "Silver mulberry silk close up"]] },
+      { name: "Blush", hex: "#DDB9B5", images: [["1606603049694-941214e2ac34", "Blush mulberry silk close up"]] },
+    ],
+    sizes: [{ label: "Standard 48 × 73cm", price: 7900 }],
+    isNew: true,
+  },
+  // ── Throws & blankets ───────────────────────────────────────
+  {
+    slug: "chunky-knit-throw",
+    name: "Chunky Knit Throw",
+    category: "bedding",
+    collection: "throws-blankets",
+    tagline: "Hand-knitted in thick, soft chenille yarn.",
+    description:
+      "Big loops, real weight, and a throw that looks as good folded at the end of the bed as it does on the couch. Knitted by hand, so no two are exactly the same.",
+    details: ["Hand-knitted", "Chenille yarn, won't shed or pill like wool roving", "120 × 150cm", "Weighs about 2.5kg"],
+    material: "100% polyester chenille",
+    care: "Hand wash cold or machine wash cold in a large laundry bag. Dry flat.",
+    colours: [
+      { name: "Cream", hex: "#EFE9DD", images: [["1674475762498-75310193b4f4", "Cream chunky knit throw folded on a bench"], ["1674475760738-8c7af859f821", "Cream chunky knit throw over a sofa"]] },
+      { name: "Charcoal", hex: "#55575A", images: [["1674475760615-73cb0da3796a", "Charcoal chunky knit throw at the end of a bed"]] },
+      { name: "Navy", hex: "#23304A", images: [["1674475761234-e6d3c4fe7b52", "Navy chunky knit throw on a timber chair"]] },
+    ],
+    sizes: [{ label: "120 × 150cm", price: 16900 }],
+    bestseller: true,
+  },
+  {
+    slug: "merino-wool-throw",
+    name: "Merino Wool Throw",
+    category: "bedding",
+    collection: "throws-blankets",
+    tagline: "Fine merino with a hand-twisted fringe.",
+    description:
+      "A lightweight woven throw in soft merino wool. Warm enough for a cold evening on the couch, light enough to take in the car.",
+    details: ["100% merino wool", "Hand-twisted fringe", "130 × 180cm"],
+    material: "100% merino wool",
+    care: "Hand wash cold with wool wash, or dry clean. Dry flat in the shade.",
+    colours: [
+      { name: "Oat", hex: "#C9B79A", images: [["1637819976869-928427bd7380", "Oat merino throw with fringe, folded"]] },
+      { name: "Denim", hex: "#6F7F9A", images: [["1608158222851-af032106bca9", "Denim blue merino throw with fringe"]] },
+    ],
+    sizes: [{ label: "130 × 180cm", price: 21900 }],
+  },
+  {
+    slug: "woven-wool-blanket",
+    name: "Woven Wool Blanket",
+    category: "bedding",
+    collection: "throws-blankets",
+    tagline: "A heavyweight woven blanket for the end of the bed.",
+    description:
+      "Dense, woven wool in a classic check or herringbone. The kind of blanket you keep for decades and pass on.",
+    details: ["Woven wool", "Blanket-stitched edges", "Two sizes"],
+    material: "90% wool, 10% nylon",
+    care: "Dry clean, or hand wash cold with wool wash. Dry flat.",
+    colours: [
+      { name: "Tobacco Check", hex: "#5C4432", accent: "#B89B7A", images: [["1730705123286-fc037477e7dd", "Tobacco check wool blanket close up"]] },
+      { name: "Mustard Herringbone", hex: "#C99A2E", images: [["1734553529922-bc020a21643b", "Stack of mustard herringbone wool blankets"]] },
+    ],
+    sizes: [
+      { label: "Throw 130 × 180cm", price: 19900 },
+      { label: "Queen 230 × 250cm", price: 32900 },
+    ],
+  },
+  // ── Leather: bags ───────────────────────────────────────────
+  {
+    slug: "leather-weekender",
+    name: "The Weekender",
+    category: "leather",
+    collection: "bags",
+    tagline: "A full-grain leather duffel sized for two or three nights away.",
+    description:
+      "Cut from thick full-grain leather that darkens and softens with use. Solid brass hardware, a cotton-lined interior with a zip pocket, and a detachable shoulder strap. It fits in most overhead lockers.",
+    details: ["Full-grain cowhide leather", "Solid brass hardware", "Cotton canvas lining, internal zip pocket", "Detachable padded shoulder strap", "50 × 26 × 28cm, about 36 litres"],
+    material: "Full-grain cowhide, brass, cotton canvas lining",
+    care: "Wipe with a dry cloth. Condition with a leather balm every few months. Keep out of prolonged direct sun. Marks and creases are part of how full-grain leather ages.",
+    colours: [
+      { name: "Espresso", hex: "#3E2419", images: [["1525103504173-8dc1582c7430", "Espresso leather weekender on an open road"]] },
+      { name: "Tan", hex: "#9A5F32", images: [["1781514041306-489a8d346265", "Tan leather weekender on stone steps"]] },
+    ],
+    sizes: [{ label: "One size", price: 44900 }],
+    featured: true,
+    monogramable: true,
+    reviews: [
+      { name: "Daniel", location: "Surry Hills NSW", rating: 5, title: "Beautiful bag", body: "Heavier than nylon, obviously, but it looks better every trip. Initials were a nice touch." },
+    ],
+  },
+  {
+    slug: "leather-satchel",
+    name: "Leather Satchel",
+    category: "leather",
+    collection: "bags",
+    tagline: "Buckled flap satchel that fits a 14-inch laptop.",
+    description:
+      "A classic two-buckle satchel in full-grain leather with a padded laptop sleeve, two front pockets and an adjustable strap.",
+    details: ["Full-grain leather", "Fits a 14-inch laptop", "Two front pockets", "Adjustable shoulder strap", "38 × 28 × 10cm"],
+    material: "Full-grain cowhide, brass buckles",
+    care: "Wipe with a dry cloth and condition every few months.",
+    colours: [
+      { name: "Tan", hex: "#A5652F", images: [["1517612228538-cefdbc2c01e7", "Tan leather satchel close up"]] },
+      { name: "Chestnut", hex: "#6B3A22", images: [["1473188588951-666fce8e7c68", "Chestnut leather satchel on stone"]] },
+      { name: "Dark Brown", hex: "#3A2419", images: [["1603219527847-24c87f552a77", "Dark brown leather satchel on a timber stool"]] },
+    ],
+    sizes: [{ label: "One size", price: 38900 }],
+    monogramable: true,
+  },
+  {
+    slug: "leather-tote",
+    name: "Leather Tote",
+    category: "leather",
+    collection: "bags",
+    tagline: "An unlined, everyday tote in soft tan leather.",
+    description:
+      "A simple open tote with long handles that sit comfortably on the shoulder. Unlined, so it stays light and shows the natural back of the hide.",
+    details: ["Full-grain leather", "Unlined", "Internal slip pocket", "36 × 40 × 12cm"],
+    material: "Full-grain cowhide",
+    care: "Wipe with a dry cloth and condition every few months.",
+    colours: [{ name: "Tan", hex: "#A8622C", images: [["1624687943971-e86af76d57de", "Tan leather tote hanging on a wall"]] }],
+    sizes: [{ label: "One size", price: 29900 }],
+    isNew: true,
+    monogramable: true,
+  },
+  {
+    slug: "leather-dopp-kit",
+    name: "Leather Toiletry Bag",
+    category: "leather",
+    collection: "bags",
+    tagline: "A zip-top toiletry bag with a water-resistant lining.",
+    description:
+      "Wide enough to see everything at a glance, with a wipe-clean lining for the inevitable leaking bottle.",
+    details: ["Full-grain leather", "Water-resistant lining", "Brass zip", "25 × 13 × 14cm"],
+    material: "Full-grain cowhide, nylon lining",
+    care: "Wipe the lining clean. Condition the leather occasionally.",
+    colours: [
+      { name: "Chestnut", hex: "#7A3F22", images: [["1644258559678-2eac1b8b79b6", "Chestnut leather toiletry bag with shaving brush"]] },
+      { name: "Black", hex: "#1E1C1B", images: [["1585687635785-994bda55c78e", "Black leather toiletry bag"]] },
+    ],
+    sizes: [{ label: "One size", price: 12900 }],
+    bestseller: true,
+    monogramable: true,
+  },
+  // ── Leather: small goods ────────────────────────────────────
+  {
+    slug: "leather-card-holder",
+    name: "Card Holder",
+    category: "leather",
+    collection: "small-leather-goods",
+    tagline: "Four card slots and a centre pocket. Hand-stitched edges.",
+    description: "Slim enough for a front pocket. Vegetable-tanned leather that develops a rich patina over time.",
+    details: ["Vegetable-tanned leather", "Four card slots, one centre pocket", "Hand-stitched", "10 × 7cm"],
+    material: "Vegetable-tanned cowhide, waxed linen thread",
+    care: "Keep dry. Condition occasionally.",
+    colours: [
+      { name: "Tan", hex: "#B06A33", images: [["1628483211662-9bcc692c46dc", "Tan leather card holder on a workbench"]] },
+      { name: "Oxblood", hex: "#5A1E1C", images: [["1512414947060-048d53abb081", "Oxblood leather card holder on concrete"]] },
+      { name: "Black", hex: "#1C1B1A", images: [["1629958317491-bd40c9fa757e", "Black leather card wallet, open"]] },
+    ],
+    sizes: [{ label: "One size", price: 6900 }],
+    bestseller: true,
+    monogramable: true,
+  },
+  {
+    slug: "leather-bifold-wallet",
+    name: "Bifold Wallet",
+    category: "leather",
+    collection: "small-leather-goods",
+    tagline: "A slim bifold with six card slots and a note pocket.",
+    description: "Classic, slim and built to last years in a back pocket.",
+    details: ["Full-grain leather", "Six card slots", "Full-length note pocket", "11 × 9cm closed"],
+    material: "Full-grain cowhide",
+    care: "Keep dry. Condition occasionally.",
+    colours: [{ name: "Chestnut", hex: "#6E3D23", images: [["1635100299010-0410d7434a93", "Chestnut leather bifold wallet with an awl"], ["1627123424574-724758594e93", "Chestnut bifold wallet in mid-air"]] }],
+    sizes: [{ label: "One size", price: 11900 }],
+    monogramable: true,
+  },
+  {
+    slug: "leather-zip-wallet",
+    name: "Zip Wallet & Key Fob",
+    category: "leather",
+    collection: "small-leather-goods",
+    tagline: "A compact zip wallet with a matching key fob.",
+    description: "Room for cards, notes and coins behind a smooth metal zip, plus a leather key fob in the same hide.",
+    details: ["Full-grain leather", "L-shaped zip", "Matching key fob", "11 × 9cm"],
+    material: "Full-grain cowhide",
+    care: "Keep dry. Condition occasionally.",
+    colours: [
+      { name: "Tan", hex: "#B36C35", images: [["1689844496310-b261f7602bc2", "Tan zip wallet and key fob"]] },
+      { name: "Black", hex: "#1C1B1A", images: [["1689844496219-7afba91f51ef", "Black zip wallet and key strap"]] },
+    ],
+    sizes: [{ label: "One size", price: 9900 }],
+    isNew: true,
+    monogramable: true,
+  },
+  {
+    slug: "leather-belt",
+    name: "Leather Belt",
+    category: "leather",
+    collection: "small-leather-goods",
+    tagline: "A 35mm belt cut from a single strip of bridle leather.",
+    description: "No layers glued together, so it won't split or peel. Solid brass buckle, held with screws so it can be replaced.",
+    details: ["Single-piece leather", "Solid brass buckle", "35mm wide", "Sizes 80 to 100cm"],
+    material: "Cowhide, solid brass",
+    care: "Condition occasionally.",
+    colours: [{ name: "Tan", hex: "#9C6A3C", images: [["1705493655920-20c572928501", "Tan leather belt with brass buckle"]] }],
+    sizes: [
+      { label: "80cm", price: 12900 },
+      { label: "90cm", price: 12900 },
+      { label: "100cm", price: 12900 },
+    ],
+    monogramable: true,
+  },
+  // ── Leather: home ───────────────────────────────────────────
+  {
+    slug: "leather-pouf",
+    name: "Leather Pouf",
+    category: "leather",
+    collection: "leather-home",
+    tagline: "A stitched leather pouf with a firm, supportive fill.",
+    description: "Extra seating, a footrest or a side table. Real leather rather than PU, so it wears in rather than cracking.",
+    details: ["Genuine leather cover", "Firm foam and fibre fill", "45cm diameter, 45cm high"],
+    material: "Cowhide leather cover, foam fill",
+    care: "Wipe with a dry cloth. Condition every six months.",
+    colours: [{ name: "Cognac", hex: "#8A4A28", images: [["1690618299438-cb453b14bab3", "Cognac leather pouf on a concrete floor"], ["1690618299433-8d0ba9a0f341", "Cognac leather pouf from above"]] }],
+    sizes: [{ label: "45 × 45cm", price: 54900 }],
+  },
+  {
+    slug: "leather-oak-stool",
+    name: "Leather & Oak Stool",
+    category: "leather",
+    collection: "leather-home",
+    tagline: "A padded leather seat on turned oak legs.",
+    description: "A small stool for the end of the bed, the entry or the dressing table.",
+    details: ["Leather seat", "Solid oak legs", "40cm diameter, 45cm high"],
+    material: "Cowhide leather, solid oak",
+    care: "Wipe the leather with a dry cloth. Condition every six months.",
+    colours: [{ name: "Brown", hex: "#4F3528", images: [["1757862351226-61b214cb5252", "Leather stool with oak legs and a book"]] }],
+    sizes: [{ label: "One size", price: 38900 }],
+    isNew: true,
+  },
+  {
+    slug: "leather-desk-tray",
+    name: "Leather Desk Tray",
+    category: "leather",
+    collection: "leather-home",
+    tagline: "A stitched leather tray for keys, notebooks and the things you lose.",
+    description: "Made from a single piece of vegetable-tanned leather, folded and stitched at the corners.",
+    details: ["Vegetable-tanned leather", "Hand-stitched corners", "28 × 19 × 5cm"],
+    material: "Vegetable-tanned cowhide",
+    care: "Wipe with a dry cloth. Condition occasionally.",
+    colours: [{ name: "Tan", hex: "#A8733F", images: [["1751564360679-33a47cdc151d", "Tan leather tray holding notebooks"]] }],
+    sizes: [{ label: "28 × 19cm", price: 8900 }],
+  },
 ];
 
 // Deterministic stock so the demo shows in-stock, low-stock and sold-out.
@@ -421,7 +784,9 @@ function stockFor(i: number, j: number) {
   return 8 + n * 2;
 }
 
-const skuPart = (s: string) => s.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase();
+/** Readable, unique SKU: XO-EVERYDAY-BATH-TOWEL-STONE-BATH-TOWEL-70-X-140CM */
+const skuFor = (...parts: string[]) =>
+  "XO-" + parts.map((p) => p.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "")).join("-");
 
 async function main() {
   for (const [i, p] of products.entries()) {
@@ -442,14 +807,15 @@ async function main() {
       await prisma.productImage.create({ data: { productId: product.id, url: u(id), alt, credit: "Unsplash", sortOrder: 100 + order++ } });
     }
 
-    // Upsert by SKU so variant ids (and anyone's cart) survive a reseed
-    const skus: string[] = [];
+    // Match existing variants by colour and size, so variant ids (and anyone's
+    // cart) survive a reseed. Stock is only set when a variant is first created.
+    const existing = await prisma.variant.findMany({ where: { productId: product.id } });
+    const kept: string[] = [];
     let j = 0;
     for (const c of colours) {
       for (const s of sizes) {
-        const sku = `SB-${skuPart(p.slug)}-${skuPart(c.name)}-${skuPart(s.label.replace(/^\D+/, ""))}`;
-        skus.push(sku);
         const v = {
+          sku: skuFor(p.slug, c.name, s.label),
           colourName: c.name,
           colourHex: c.hex,
           accentHex: c.accent ?? c.hex,
@@ -458,15 +824,17 @@ async function main() {
           compareAtCents: s.compareAt ?? null,
           sortOrder: j,
         };
-        await prisma.variant.upsert({
-          where: { sku },
-          create: { ...v, productId: product.id, sku, stock: stockFor(i, j) },
-          update: v,
-        });
+        const match = existing.find((e) => e.colourName === c.name && e.size === s.label);
+        const saved = match
+          ? await prisma.variant.update({ where: { id: match.id }, data: v })
+          : await prisma.variant.create({ data: { ...v, productId: product.id, stock: stockFor(i, j) } });
+        kept.push(saved.id);
         j++;
       }
     }
-    await prisma.variant.deleteMany({ where: { productId: product.id, sku: { notIn: skus }, orderItems: { none: {} } } });
+    // Variants that were dropped: delete them, or just hide stock if they've been ordered
+    await prisma.variant.deleteMany({ where: { productId: product.id, id: { notIn: kept }, orderItems: { none: {} } } });
+    await prisma.variant.updateMany({ where: { productId: product.id, id: { notIn: kept } }, data: { stock: 0 } });
 
     // Only ever touch the sample reviews below; real customer reviews are left alone
     for (const r of reviews ?? []) {

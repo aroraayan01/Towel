@@ -9,11 +9,18 @@
   --color-line: #e2dfda;
   --color-sale: #a3321c;
   --color-ok: #2f6b3f;
+  /* xomexo brand colours, shared with xomexo.com */
+  --color-forest: #1d4d3f;
+  --color-forest-dark: #143a2f;
+  --color-brass: #a9822f;
 
   --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bodoni), "Didot", "Bodoni 72", Georgia, serif;
 
   --animate-drawer: drawer 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   --animate-fade: fade 0.2s ease-out;
+  --animate-settle: settle 2.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-rise: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 
   @keyframes drawer {
     from { transform: translateX(100%); }
@@ -22,6 +29,15 @@
   @keyframes fade {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+  /* Hero photo eases from a slight zoom into place */
+  @keyframes settle {
+    from { transform: scale(1.06); }
+    to { transform: scale(1); }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 }
 
@@ -37,10 +53,15 @@
     font-size: 15px;
     line-height: 1.55;
   }
-  h1, h2, h3 {
+  h1, h2 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.08;
+  }
+  h3 {
     font-weight: 500;
-    letter-spacing: -0.015em;
-    line-height: 1.1;
+    line-height: 1.2;
   }
   :focus-visible {
     outline: 1.5px solid var(--color-ink);
@@ -68,10 +89,11 @@
     .page-x { padding-inline: 3rem; }
   }
 
-  /* Wide cut of Archivo for display type */
+  /* Display serif for headlines and the wordmark */
   .wide {
-    font-stretch: 115%;
-    font-variation-settings: "wdth" 115;
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
   }
   .caps {
     font-size: 12px;
@@ -96,8 +118,8 @@
     white-space: nowrap;
   }
   .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-  .btn-dark { background: var(--color-ink); color: #fff; }
-  .btn-dark:hover:not(:disabled) { background: #333; }
+  .btn-dark { background: var(--color-forest); color: #fff; }
+  .btn-dark:hover:not(:disabled) { background: var(--color-forest-dark); }
   .btn-line { border: 1px solid var(--color-ink); }
   .btn-line:hover:not(:disabled) { background: var(--color-ink); color: #fff; }
   .btn-white { background: #fff; color: var(--color-ink); }

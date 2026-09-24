@@ -16,6 +16,7 @@ export type BuyBoxProduct = {
   slug: string;
   name: string;
   tagline: string;
+  category: string;
   monogramable: boolean;
   rating: number | null;
   reviewCount: number;
@@ -60,7 +61,8 @@ export function ProductBuyBox({
   const [colour, setColour] = useState(startColour);
   const [size, setSize] = useState(() => {
     const inStock = product.variants.filter((v) => v.colourName === startColour && v.stock > 0);
-    return (inStock.find((v) => /bath towel/i.test(v.size)) ?? inStock[0] ?? product.variants[0]).size;
+    // Default to the size most people buy: a bath towel, or a Queen for bedding
+    return (inStock.find((v) => /bath towel|^queen/i.test(v.size)) ?? inStock[0] ?? product.variants[0]).size;
   });
   const [qty, setQty] = useState(1);
   const [wantsMonogram, setWantsMonogram] = useState(false);
@@ -75,6 +77,7 @@ export function ProductBuyBox({
   const soldOut = variant.stock <= 0;
   const mono = wantsMonogram ? cleanMonogram(monogram) : undefined;
   const unit = variant.priceCents + (mono ? store.commerce.monogramCents : 0);
+  const isLeather = product.category === "leather";
 
   const gallery = useMemo(() => {
     const own = product.images.filter((i) => i.colourName === colour);
@@ -99,7 +102,9 @@ export function ProductBuyBox({
       productId: product.id,
       slug: product.slug,
       name: product.name,
-      variantLabel: sizes.length > 1 || colours.length > 1 ? `${variant.colourName} / ${variant.size}` : variant.size,
+      // Only mention the options that actually vary for this product
+      variantLabel:
+        [colours.length > 1 && variant.colourName, sizes.length > 1 && variant.size].filter(Boolean).join(" / ") || variant.size,
       image: gallery[0].url,
       unitCents: variant.priceCents,
       quantity: Math.min(qty, variant.stock),
@@ -141,7 +146,7 @@ export function ProductBuyBox({
       {/* Buy panel */}
       <div className="lg:sticky lg:top-28 lg:self-start">
         <div className="flex items-start justify-between gap-4">
-          <h1 className="text-[26px] leading-tight md:text-[30px]">{product.name}</h1>
+          <h1 className="text-[32px] leading-[1.05] md:text-[42px]">{product.name}</h1>
           <WishlistButton slug={product.slug} name={product.name} className="-mr-2 shrink-0" />
         </div>
         <p className="mt-2 text-lg">
@@ -208,12 +213,12 @@ export function ProductBuyBox({
           <div className="mt-6 border-t border-line pt-5">
             <label className="flex cursor-pointer items-center gap-3 text-[14px]">
               <input type="checkbox" checked={wantsMonogram} onChange={(e) => setWantsMonogram(e.target.checked)} className="size-4 accent-ink" />
-              Add a monogram (+{formatPrice(store.commerce.monogramCents)})
+              {isLeather ? "Add your initials" : "Add a monogram"} (+{formatPrice(store.commerce.monogramCents)})
             </label>
             {wantsMonogram && (
               <div className="mt-3 pl-7">
                 <label htmlFor="monogram" className="field-label">
-                  Up to {MONOGRAM_MAX} letters, embroidered in white thread
+                  Up to {MONOGRAM_MAX} letters, {isLeather ? "heat-debossed into the leather" : "embroidered in white thread"}
                 </label>
                 <input
                   id="monogram"
@@ -223,7 +228,7 @@ export function ProductBuyBox({
                   placeholder="ABC"
                   className="input w-32 text-center text-lg tracking-[0.35em] uppercase"
                 />
-                <p className="mt-2 text-[12px] text-grey">Ships 2 to 3 business days later. Monogrammed items can&apos;t be returned for change of mind.</p>
+                <p className="mt-2 text-[12px] text-grey">Ships 2 to 3 business days later. Personalised items can&apos;t be returned for change of mind.</p>
               </div>
             )}
           </div>

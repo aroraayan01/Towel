@@ -85,6 +85,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
             slug: p.slug,
             name: p.name,
             tagline: p.tagline,
+            category: p.category,
             monogramable: p.monogramable,
             rating,
             reviewCount: p.reviews.length,

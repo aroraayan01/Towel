@@ -116,7 +116,7 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
       productId: v.productId,
       variantId: v.id,
       name: v.product.name,
-      variantLabel: `${v.colourName} · ${v.size}`,
+      variantLabel: v.size === "One size" ? v.colourName : `${v.colourName} · ${v.size}`,
       unitCents: v.priceCents,
       quantity: l.quantity,
       monogram: monogram ?? null,

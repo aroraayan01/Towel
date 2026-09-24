@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
   // Product photos are resized by their own CDN (see lib/image-loader.ts)
   images: { loader: "custom", loaderFile: "./lib/image-loader.ts" },
 
+  // The towels category became "bath" when bedding and leather were added
+  async redirects() {
+    return [{ source: "/shop/towels", destination: "/shop/bath", permanent: true }];
+  },
+
   // Basic hardening headers for every route.
   async headers() {
     return [

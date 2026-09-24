@@ -5,14 +5,14 @@
  * TODO before launch: every value marked PLACEHOLDER.
  */
 export const store = {
-  name: "Saltbush", // PLACEHOLDER brand name
-  tagline: "Towels and rugs",
-  description: "Cotton towels and natural-fibre rugs, designed in Australia. Free delivery over $150.",
+  name: "xomexo",
+  tagline: "Bath, bedding, rugs and leather",
+  description: "Towels, bedding, rugs and full-grain leather goods, designed in Australia. Free delivery over $150.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
 
-  legalName: "Saltbush Home Pty Ltd", // PLACEHOLDER
+  legalName: "Xomexo Pty Ltd", // PLACEHOLDER
   abn: "00 000 000 000", // PLACEHOLDER — must appear on tax invoices
-  email: "hello@saltbush.com.au", // PLACEHOLDER
+  email: "hello@xomexo.com", // PLACEHOLDER
   phone: "1300 000 000", // PLACEHOLDER
   phoneHref: "tel:1300000000",
   address: {
@@ -24,7 +24,7 @@ export const store = {
   /** Traditional Custodians of the land at the address above (update if you move) */
   traditionalCustodians: "the Whadjuk Noongar people",
   hours: "Monday to Friday, 9am to 4pm AWST",
-  instagram: "saltbush.home", // PLACEHOLDER handle, without the @
+  instagram: "xomexo", // PLACEHOLDER handle, without the @
 
   commerce: {
     currency: "AUD",

@@ -1,8 +1,17 @@
-# Saltbush
+# xomexo
 
-An online store for towels and rugs, built for Australia: AUD with GST-inclusive pricing, Australia Post postcode and state validation, Afterpay, and returns wording that meets the Australian Consumer Law.
+An online store for bath, bedding, rugs and leather goods, built for Australia: AUD with GST-inclusive pricing, Australia Post postcode and state validation, Afterpay, and returns wording that meets the Australian Consumer Law.
 
-"Saltbush" is a placeholder name. It's set in `lib/store.ts`, along with the other business details.
+The name is set in `lib/store.ts`, along with the other business details (ABN, address and so on are still placeholders). The brand colours (forest green and brass) and the favicon come from the existing xomexo.com site.
+
+Categories and collections:
+
+- **Bath:** bath towels, beach towels, hand towels
+- **Bedding:** quilts, bed linen, throws and blankets
+- **Rugs:** area rugs, runners, bath mats
+- **Leather:** bags, wallets and accessories, leather for the home
+
+The product mix and pricing are based on a look at Amazon Australia's best sellers; see [docs/amazon-au-research.md](docs/amazon-au-research.md).
 
 **Stack:** Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · Prisma 7 + SQLite · Stripe Checkout · Nodemailer
 
@@ -44,7 +53,7 @@ To use your own photos:
   - size options and live stock ("only 3 left")
   - a delivery check by postcode
   - reviews and related products
-- Towel monogramming (+$12), a gift note and gift wrap
+- Personalisation (+$12): embroidered monograms on towels and heat-debossed initials on leather. Plus a gift note and gift wrap
 - Cart drawer, cart page, a free-delivery progress bar, and a wishlist (both saved in the browser)
 
 **Checkout** (`app/(shop)/checkout`)
@@ -72,10 +81,10 @@ To use your own photos:
 | What | Where |
 |---|---|
 | Brand name, ABN, contact details, Traditional Custodians, delivery threshold, monogram price | `lib/store.ts` |
+| Categories and collections (names, blurbs, tile photos) | `lib/collections.ts` |
 | Delivery rates and estimates | `lib/shipping.ts` |
 | Products, photos, colours, sizes | `prisma/seed.ts` → `npm run db:seed` (safe to re-run; keeps variant ids stable) |
-| Collection names, descriptions and tile photos | `lib/collections.ts` |
-| Colours and type | `app/globals.css` (`@theme`), `app/layout.tsx` (Archivo) |
+| Colours and type | `app/globals.css` (`@theme`), `app/layout.tsx` (Bodoni Moda for headings, Archivo for text) |
 | Home page copy and photos | `app/(shop)/page.tsx` |
 | Emails | `lib/email.ts` |
 
@@ -83,7 +92,7 @@ To use your own photos:
 
 - [ ] **Name and business details** in `lib/store.ts`: brand, ABN, legal name, address, phone, email, Instagram handle, Traditional Custodians for your location
 - [ ] **Your own photos** for every product and for the home and About pages (see above)
-- [ ] **Product copy**: check every claim (GSM, materials, "washable", "hand-woven") against the real stock
+- [ ] **Product copy**: check every claim against the real stock, especially "Australian merino", "French flax linen", "22 momme", "full-grain" and "vegetable-tanned". Material claims are what shoppers and the ACCC look at hardest
 - [ ] **Reviews**: reseed with `SEED_REVIEWS=false npm run db:seed` so the sample reviews are removed. Publishing reviews that aren't from real customers breaches the ACL
 - [ ] **About page**: rewrite in your own words (`app/(shop)/about/page.tsx`)
 - [ ] **Stripe**: add `STRIPE_SECRET_KEY`; turn on Afterpay, Apple Pay and Google Pay in Dashboard → Settings → Payment methods; add a webhook to `https://<domain>/api/stripe/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` and `checkout.session.expired`, then set `STRIPE_WEBHOOK_SECRET`

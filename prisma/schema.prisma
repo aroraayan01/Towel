@@ -1,4 +1,4 @@
-// Saltbush: data model
+// xomexo: data model
 //
 // Prisma 7: the `prisma-client` generator with an explicit `output` is
 // required, and the datasource URL lives in prisma.config.ts.
