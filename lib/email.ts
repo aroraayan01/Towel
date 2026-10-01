@@ -50,7 +50,8 @@ function layout(title: string, body: string) {
   return `<!doctype html><html><body style="margin:0;background:#f3f1ed;font-family:Helvetica,Arial,sans-serif;color:#2b2622">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f1ed;padding:24px 12px"><tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;overflow:hidden">
-<tr><td style="background:#141414;color:#fff;padding:22px 28px;font-size:18px;letter-spacing:.18em;text-transform:uppercase">${esc(store.name)}</td></tr>
+<tr><td style="background:#1d4d3f;color:#fff;padding:18px 28px;font-size:18px;letter-spacing:.18em;text-transform:uppercase">
+<img src="${store.url}/apple-icon" width="30" height="30" alt="" style="vertical-align:middle;margin-right:12px;border:1px solid rgba(255,255,255,.25)">${esc(store.name)}</td></tr>
 <tr><td style="padding:28px">
 <h1 style="font-weight:500;font-size:22px;margin:0 0 16px">${title}</h1>
 ${body}

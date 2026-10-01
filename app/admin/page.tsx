@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
 import { formatMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
-import { paymentsLive } from "@/lib/stripe";
+import { checkoutOpen, paymentsLive } from "@/lib/stripe";
 import { AdminTitle, card, StatusBadge, table } from "./ui";
 
 const PAID = ["PAID", "PACKED", "SHIPPED", "DELIVERED"];
@@ -27,7 +27,16 @@ export default async function Dashboard() {
       <AdminTitle title="Dashboard" />
       {!paymentsLive() && (
         <p className="mb-6 border border-dashed border-sale/40 bg-white p-4 text-sm">
-          <strong>Test mode.</strong> STRIPE_SECRET_KEY isn&apos;t set, so checkout creates orders without taking payment.
+          {checkoutOpen() ? (
+            <>
+              <strong>Test mode.</strong> STRIPE_SECRET_KEY isn&apos;t set, so checkout creates orders without taking payment.
+            </>
+          ) : (
+            <>
+              <strong>Checkout is closed.</strong> Customers can browse and fill a bag, but can&apos;t place orders until
+              STRIPE_SECRET_KEY is set.
+            </>
+          )}
         </p>
       )}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

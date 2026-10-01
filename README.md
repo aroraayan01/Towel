@@ -104,8 +104,28 @@ To use your own photos:
 
 ## Deploying
 
-This is a standard Node app (`npm run build && npm start`) and runs under PM2 on any VPS. SQLite suits a single server; back up the database file.
+Live at **xomexo.com** on the cPanel box (the same server as the other sites). The old handicrafts site stays live at **old.xomexo.com**, with a backup in `~/backups` and its own repo (aroraayan01/xomexo) untouched.
 
-To use MySQL or MariaDB instead: change `provider` in `prisma/schema.prisma`, swap the adapter in `lib/prisma.ts` and `prisma/seed.ts` for `@prisma/adapter-mariadb`, delete `prisma/migrations`, and run `npx prisma migrate dev --name init`.
+How it runs:
+- Code: `/home/grapme/xomexo-store`, a checkout of this repo
+- Database: `/home/grapme/xomexo-data/xomexo.db`, kept outside the code folder so deploys never touch it. Back it up.
+- Settings: `.env.local` in the code folder (Next.js and Prisma both read it)
+- Process: systemd service `xomexo`, running as the cPanel user on 127.0.0.1:3410
+- Apache: proxies xomexo.com to it through cPanel userdata includes (`/etc/apache2/conf.d/userdata/{std,ssl}/2_4/grapme/xomexo.com/xomexo.conf`)
+
+Commands (run as root in WHM » Terminal):
+
+| What | Command |
+|---|---|
+| First install | `bash install.sh` (download it from this repo first; safe to re-run) |
+| Update after a push | `bash /home/grapme/xomexo-store/deploy/update.sh` |
+| Put the old site back on xomexo.com | `bash /home/grapme/xomexo-store/deploy/rollback.sh` |
+| Logs | `journalctl -u xomexo -f` |
+
+**Checkout is closed on the live site until Stripe is set up.** Without `STRIPE_SECRET_KEY`, orders would be marked paid without taking money, so in production the checkout page says "opens soon" instead. To open it, add the Stripe keys to `.env.local` and run `update.sh --force`. (`ALLOW_TEST_CHECKOUT=true` overrides this for a private staging copy. Never set it on the public site.)
+
+The first install loads the catalogue **without** the sample reviews. Updates never reseed, because that would undo price and stock changes made in /admin.
 
 The rate limiter is in-memory, so it assumes one Node process.
+
+To use MySQL or MariaDB instead of SQLite: change `provider` in `prisma/schema.prisma`, swap the adapter in `lib/prisma.ts` and `prisma/seed.ts` for `@prisma/adapter-mariadb`, delete `prisma/migrations`, and run `npx prisma migrate dev --name init`.

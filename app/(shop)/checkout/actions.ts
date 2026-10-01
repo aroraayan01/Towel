@@ -11,7 +11,7 @@ import { cleanMonogram, MAX_QTY } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { rateLimited } from "@/lib/rate-limit";
 import { shippingQuote, STATES, stateForPostcode, type StateCode } from "@/lib/shipping";
-import { getStripe } from "@/lib/stripe";
+import { checkoutOpen, getStripe } from "@/lib/stripe";
 import { store } from "@/lib/store";
 
 export type CheckoutState = { error: string; fields?: Record<string, string> } | null;
@@ -51,6 +51,8 @@ const schema = z.object({
 });
 
 export async function placeOrder(_: CheckoutState, form: FormData): Promise<CheckoutState> {
+  if (!checkoutOpen()) return { error: "Online checkout isn't open yet. Please check back soon." };
+
   if (await rateLimited("checkout", 10, 10 * 60_000)) {
     return { error: "Too many checkout attempts. Please wait a few minutes and try again." };
   }

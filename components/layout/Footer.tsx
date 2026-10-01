@@ -68,7 +68,7 @@ export function Footer() {
       <div className="border-t border-white/10">
         <div className="page-x flex flex-col justify-between gap-8 py-10 md:flex-row md:items-end">
           <div>
-            <Wordmark className="text-white" />
+            <Wordmark className="text-white" tone="dark" />
             <p className="mt-5 max-w-2xl text-[13px] text-white/60">
               We acknowledge the Traditional Custodians of the land on which we work, {store.traditionalCustodians}, and pay our
               respects to Elders past and present.
