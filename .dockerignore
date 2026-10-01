@@ -1,0 +1,15 @@
+# Never bake settings or secrets into the image; they come from .env.local at run time
+.env*
+!.env.example
+
+node_modules
+.next
+app/generated
+*.db
+*.db-journal
+prisma/*.db*
+.git
+deploy
+docs
+*.tsbuildinfo
+npm-debug.log*

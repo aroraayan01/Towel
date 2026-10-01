@@ -110,7 +110,7 @@ How it runs:
 - Code: `/home/grapme/xomexo-store`, a checkout of this repo
 - Database: `/home/grapme/xomexo-data/xomexo.db`, kept outside the code folder so deploys never touch it. Back it up.
 - Settings: `.env.local` in the code folder (Next.js and Prisma both read it)
-- Process: systemd service `xomexo`, running as the cPanel user on 127.0.0.1:3410
+- Process: a Docker container (`compose.yaml`, `Dockerfile`), running as the cPanel user on 127.0.0.1:3410 and restarting on boot. It runs in Docker because the server is AlmaLinux 8, whose glibc (2.28) is too old for Next.js (it needs 2.30).
 - Apache: proxies xomexo.com to it through cPanel userdata includes (`/etc/apache2/conf.d/userdata/{std,ssl}/2_4/grapme/xomexo.com/xomexo.conf`)
 
 Commands (run as root in WHM » Terminal):
@@ -120,7 +120,7 @@ Commands (run as root in WHM » Terminal):
 | First install | `curl -fsSL https://raw.githubusercontent.com/aroraayan01/Towel/main/deploy/install.sh -o /root/xomexo-install.sh && bash /root/xomexo-install.sh` (safe to re-run) |
 | Update after a push | `bash /home/grapme/xomexo-store/deploy/update.sh` |
 | Put the old site back on xomexo.com | `bash /home/grapme/xomexo-store/deploy/rollback.sh` |
-| Logs | `journalctl -u xomexo -f` |
+| Logs | `cd /home/grapme/xomexo-store && docker compose logs -f` |
 
 **Checkout is closed on the live site until Stripe is set up.** Without `STRIPE_SECRET_KEY`, orders would be marked paid without taking money, so in production the checkout page says "opens soon" instead. To open it, add the Stripe keys to `.env.local` and run `update.sh --force`. (`ALLOW_TEST_CHECKOUT=true` overrides this for a private staging copy. Never set it on the public site.)
 

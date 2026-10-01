@@ -9,7 +9,6 @@
 set -euo pipefail
 
 DOMAIN="${XOMEXO_DOMAIN:-xomexo.com}"
-SERVICE=xomexo
 
 die() { printf '\n\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 [ "$(id -u)" = 0 ] || die "Run this as root."
@@ -20,6 +19,8 @@ rm -f "/etc/apache2/conf.d/userdata/std/2_4/${OWNER}/${DOMAIN}/xomexo.conf" \
 /scripts/ensure_vhost_includes --user="$OWNER" >/dev/null
 apachectl configtest
 apachectl graceful
-systemctl disable --now "$SERVICE" 2>/dev/null || true
+# Stop the container; restart: unless-stopped keeps it stopped across reboots
+HOME_DIR="$(getent passwd "$OWNER" | cut -d: -f6)"
+XOMEXO_DATA_DIR="${HOME_DIR}/xomexo-data" docker compose -f "${HOME_DIR}/xomexo-store/compose.yaml" stop 2>/dev/null || true
 
 printf '\n\033[32m%s is serving the old site again. The store is stopped, not deleted.\033[0m\n' "$DOMAIN"

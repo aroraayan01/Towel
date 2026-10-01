@@ -11,13 +11,13 @@
 # until the very last step, which only runs once the new store answers.
 #
 # What it does, in order:
-#   1. Preflight: cPanel, owner of xomexo.com, Node >= 20.9, free port
+#   1. Preflight: cPanel, owner of xomexo.com, Docker, free port
 #   2. Backs up the old site folder to ~/backups as a .tar.gz
 #   3. Creates old.xomexo.com and copies the old site there (untouched, .git included)
 #   4. Clones the store from GitHub (github.com/aroraayan01/Towel)
 #   5. Writes .env.local with generated admin credentials (first time only)
-#   6. npm ci, database migrate, catalogue seed (first time only), build
-#   7. Runs it as a systemd service on 127.0.0.1 as the cPanel user
+#   6. Builds the Docker image, migrates the database, seeds it (first time only)
+#   7. Runs the container on 127.0.0.1, as the cPanel user, restarting on boot
 #   8. Points xomexo.com at it through Apache, tested and reloaded gracefully
 set -euo pipefail
 
@@ -25,7 +25,6 @@ DOMAIN="${XOMEXO_DOMAIN:-xomexo.com}"
 OLD_SUB="${XOMEXO_OLD_SUB:-old}"                     # old.xomexo.com
 REPO="${XOMEXO_REPO:-https://github.com/aroraayan01/Towel.git}"
 PORT="${XOMEXO_PORT:-3410}"
-SERVICE=xomexo
 
 say()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 ok()   { printf '    \033[32m%s\033[0m\n' "$*"; }
@@ -45,23 +44,23 @@ APP_DIR="${HOME_DIR}/xomexo-store"
 DATA_DIR="${HOME_DIR}/xomexo-data"
 ok "${DOMAIN} belongs to ${OWNER} (home ${HOME_DIR})"
 
-NODE_BIN=""
-for cand in /opt/cpanel/ea-nodejs22/bin/node /opt/cpanel/ea-nodejs24/bin/node /opt/cpanel/ea-nodejs20/bin/node "$(command -v node || true)"; do
-  [ -n "$cand" ] && [ -x "$cand" ] || continue
-  if "$cand" -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>20||(a===20&&b>=9)?0:1)'; then
-    NODE_BIN="$cand"; break
-  fi
-done
-[ -n "$NODE_BIN" ] || die "Node 20.9 or newer is needed. Install it with:  dnf install -y ea-nodejs22   then run this again."
-NODE_DIR="$(dirname "$NODE_BIN")"
-ok "Node $("$NODE_BIN" -v) at ${NODE_BIN}"
+# The store runs in a container: this server's glibc is 2.28 and Next.js's
+# compiler needs 2.30 or newer.
+command -v docker >/dev/null || die "Docker is not installed."
+docker compose version >/dev/null 2>&1 || die "The Docker Compose plugin is missing (docker compose)."
+ok "$(docker --version)"
 
-if ss -ltn "sport = :${PORT}" | grep -q LISTEN && ! systemctl is-active --quiet "$SERVICE"; then
+# A previous attempt may have left a systemd unit behind; the container replaces it
+if [ -f /etc/systemd/system/xomexo.service ]; then
+  systemctl disable --now xomexo >/dev/null 2>&1 || true
+  rm -f /etc/systemd/system/xomexo.service; systemctl daemon-reload
+fi
+if ss -ltn "sport = :${PORT}" | grep -q LISTEN && ! docker ps --format '{{.Ports}}' | grep -q "127.0.0.1:${PORT}->"; then
   die "Port ${PORT} is already in use by something else. Re-run with XOMEXO_PORT=<free port>."
 fi
 ok "Port ${PORT} is free (or already ours)"
 
-as_owner() { runuser -u "$OWNER" -- env HOME="$HOME_DIR" PATH="${NODE_DIR}:/usr/local/bin:/usr/bin:/bin" "$@"; }
+as_owner() { runuser -u "$OWNER" -- env HOME="$HOME_DIR" "$@"; }
 # Work from a folder the cPanel user can read (root's own home is off limits to it)
 cd "$HOME_DIR"
 
@@ -146,54 +145,35 @@ EOF
 fi
 
 # ── 6. Build ────────────────────────────────────────────────────────────────
-say "Installing packages and building (a few minutes)"
+say "Building the store image (a few minutes the first time)"
 cd "$APP_DIR"
-as_owner npm ci --no-audit --no-fund
-as_owner npx prisma migrate deploy
+# Left over from an earlier attempt that built directly on this server
+rm -rf "${APP_DIR}/node_modules" "${APP_DIR}/.next"
+chown "$OWNER:$OWNER" "$DATA_DIR"
+
+export XOMEXO_DATA_DIR="$DATA_DIR" XOMEXO_PORT="$PORT"
+export APP_UID="$(id -u "$OWNER")" APP_GID="$(id -g "$OWNER")"
+export NEXT_PUBLIC_SITE_URL="$(grep -oP '^NEXT_PUBLIC_SITE_URL=\K.*' "$ENV_FILE")"
+docker compose build
+docker compose run --rm --no-deps store npx prisma migrate deploy
 if [ "$FIRST_DB" = 1 ]; then
   # Sample reviews are left out on purpose: publishing reviews that are not from
   # real customers breaches the Australian Consumer Law.
-  as_owner env SEED_REVIEWS=false npx prisma db seed
+  docker compose run --rm --no-deps -e SEED_REVIEWS=false store npx prisma db seed
   ok "Loaded the catalogue (no sample reviews)"
 else
   ok "Database already has data; not reseeding (that would undo price and stock edits made in /admin)"
 fi
-as_owner npm run build
 
-# ── 7. Service ──────────────────────────────────────────────────────────────
-say "Starting the store as a service"
-cat > "/etc/systemd/system/${SERVICE}.service" <<EOF
-[Unit]
-Description=xomexo store (Next.js) for ${DOMAIN}
-After=network.target
-
-[Service]
-Type=simple
-User=${OWNER}
-Group=${OWNER}
-WorkingDirectory=${APP_DIR}
-Environment=NODE_ENV=production
-Environment=PATH=${NODE_DIR}:/usr/local/bin:/usr/bin:/bin
-ExecStart=${NODE_BIN} ${APP_DIR}/node_modules/next/dist/bin/next start -p ${PORT} -H 127.0.0.1
-Restart=always
-RestartSec=3
-# Keep it to its own files
-NoNewPrivileges=true
-PrivateTmp=true
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl daemon-reload
-systemctl enable "$SERVICE" >/dev/null 2>&1
-systemctl restart "$SERVICE"
-
-for _ in $(seq 1 30); do
+# ── 7. Run ──────────────────────────────────────────────────────────────────
+say "Starting the store"
+docker compose up -d
+for _ in $(seq 1 45); do
   code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/" || true)"
   [ "$code" = 200 ] && break
   sleep 2
 done
-[ "${code:-}" = 200 ] || { journalctl -u "$SERVICE" -n 40 --no-pager; die "The store did not start (HTTP ${code:-none}). xomexo.com is unchanged."; }
+[ "${code:-}" = 200 ] || { docker compose logs --tail 60; die "The store did not start (HTTP ${code:-none}). xomexo.com is unchanged."; }
 ok "Store answering on 127.0.0.1:${PORT}"
 
 # ── 8. Apache ───────────────────────────────────────────────────────────────
@@ -254,10 +234,10 @@ if [ -z "$(dig +short "${OLD_SUB}.${DOMAIN}" 2>/dev/null || true)" ]; then
   printf '    add an A record for "%s" pointing at this server.\033[0m\n' "$OLD_SUB"
 fi
 printf '    https://%s/admin      admin\n' "$DOMAIN"
-if [ -n "${ADMIN_PASSWORD:-}" ]; then
-  printf '\n    \033[1;33mAdmin password: %s\033[0m\n    (stored only in %s, change it there)\n' "$ADMIN_PASSWORD" "$ENV_FILE"
-fi
+# Read back from the file, so a re-run still shows it
+printf '\n    \033[1;33mAdmin password: %s\033[0m\n    (stored only in %s; after changing it, run update.sh --force)\n' \
+  "$(grep -oP '^ADMIN_PASSWORD=\K.*' "$ENV_FILE")" "$ENV_FILE"
 printf '\n    Checkout stays closed until STRIPE_SECRET_KEY is set in %s.\n' "$ENV_FILE"
-printf '    Logs:      journalctl -u %s -f\n' "$SERVICE"
+printf '    Logs:      cd %s && docker compose logs -f\n' "$APP_DIR"
 printf '    Updates:   bash %s/deploy/update.sh\n' "$APP_DIR"
 printf '    Undo:      bash %s/deploy/rollback.sh\n\n' "$APP_DIR"
