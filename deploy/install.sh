@@ -22,7 +22,7 @@ set -euo pipefail
 
 DOMAIN="${XOMEXO_DOMAIN:-xomexo.com}"
 OLD_SUB="${XOMEXO_OLD_SUB:-old}"                     # old.xomexo.com
-REPO="${XOMEXO_REPO:-git@github-xomexo:aroraayan01/xomexo-store.git}"
+REPO="${XOMEXO_REPO:-git@github-xomexo:aroraayan01/Towel.git}"
 PORT="${XOMEXO_PORT:-3410}"
 SERVICE=xomexo
 
@@ -115,7 +115,7 @@ fi
 GH_REPLY="$(as_owner ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -T github-xomexo 2>&1 || true)"
 if ! grep -q "successfully authenticated" <<<"$GH_REPLY"; then
   printf '\n\033[1;33mGitHub does not know this server yet. Add this as a READ-ONLY deploy key on\n'
-  printf 'github.com/aroraayan01/xomexo-store » Settings » Deploy keys (or send it to Claude):\033[0m\n\n'
+  printf 'github.com/aroraayan01/Towel » Settings » Deploy keys (or send it to Claude):\033[0m\n\n'
   cat "${KEY}.pub"
   printf '\nThen run this script again. Nothing has changed on xomexo.com yet.\n'
   exit 0
