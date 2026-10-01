@@ -3,7 +3,8 @@
 # static site on xomexo.com while keeping that site live at old.xomexo.com.
 #
 # Run as root (WHM » Terminal):
-#   bash install.sh
+#   curl -fsSL https://raw.githubusercontent.com/aroraayan01/Towel/main/deploy/install.sh -o /root/xomexo-install.sh
+#   bash /root/xomexo-install.sh
 #
 # Safe to re-run: every step checks what is already done and skips it.
 # It stops on the first error, and xomexo.com keeps serving the old site
@@ -13,7 +14,7 @@
 #   1. Preflight: cPanel, owner of xomexo.com, Node >= 20.9, free port
 #   2. Backs up the old site folder to ~/backups as a .tar.gz
 #   3. Creates old.xomexo.com and copies the old site there (untouched, .git included)
-#   4. Clones the store from GitHub (sets up a read-only deploy key first time)
+#   4. Clones the store from GitHub (github.com/aroraayan01/Towel)
 #   5. Writes .env.local with generated admin credentials (first time only)
 #   6. npm ci, database migrate, catalogue seed (first time only), build
 #   7. Runs it as a systemd service on 127.0.0.1 as the cPanel user
@@ -22,7 +23,7 @@ set -euo pipefail
 
 DOMAIN="${XOMEXO_DOMAIN:-xomexo.com}"
 OLD_SUB="${XOMEXO_OLD_SUB:-old}"                     # old.xomexo.com
-REPO="${XOMEXO_REPO:-git@github-xomexo:aroraayan01/Towel.git}"
+REPO="${XOMEXO_REPO:-https://github.com/aroraayan01/Towel.git}"
 PORT="${XOMEXO_PORT:-3410}"
 SERVICE=xomexo
 
@@ -101,25 +102,8 @@ fi
 
 # ── 4. Code ─────────────────────────────────────────────────────────────────
 say "Getting the store code"
-SSH_DIR="${HOME_DIR}/.ssh"
-KEY="${SSH_DIR}/xomexo_deploy"
-if [ ! -f "$KEY" ]; then
-  as_owner mkdir -p "$SSH_DIR"; chmod 700 "$SSH_DIR"
-  as_owner ssh-keygen -q -t ed25519 -N "" -C "xomexo-deploy@$(hostname)" -f "$KEY"
-fi
-if ! grep -q "Host github-xomexo" "${SSH_DIR}/config" 2>/dev/null; then
-  printf '\nHost github-xomexo\n  HostName github.com\n  User git\n  IdentityFile %s\n  IdentitiesOnly yes\n' "$KEY" >> "${SSH_DIR}/config"
-  chown "$OWNER:$OWNER" "${SSH_DIR}/config"; chmod 600 "${SSH_DIR}/config"
-fi
-# "ssh -T" to GitHub always exits 1, even when the key works, so read its message instead
-GH_REPLY="$(as_owner ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -T github-xomexo 2>&1 || true)"
-if ! grep -q "successfully authenticated" <<<"$GH_REPLY"; then
-  printf '\n\033[1;33mGitHub does not know this server yet. Add this as a READ-ONLY deploy key on\n'
-  printf 'github.com/aroraayan01/Towel » Settings » Deploy keys (or send it to Claude):\033[0m\n\n'
-  cat "${KEY}.pub"
-  printf '\nThen run this script again. Nothing has changed on xomexo.com yet.\n'
-  exit 0
-fi
+# The repo is public, so this needs no key. If it is ever made private, add a
+# read-only deploy key for the cPanel user and set XOMEXO_REPO to the SSH URL.
 if [ -d "${APP_DIR}/.git" ]; then
   as_owner git -C "$APP_DIR" pull --ff-only
 else

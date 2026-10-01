@@ -117,7 +117,7 @@ Commands (run as root in WHM » Terminal):
 
 | What | Command |
 |---|---|
-| First install | `bash install.sh` (download it from this repo first; safe to re-run) |
+| First install | `curl -fsSL https://raw.githubusercontent.com/aroraayan01/Towel/main/deploy/install.sh -o /root/xomexo-install.sh && bash /root/xomexo-install.sh` (safe to re-run) |
 | Update after a push | `bash /home/grapme/xomexo-store/deploy/update.sh` |
 | Put the old site back on xomexo.com | `bash /home/grapme/xomexo-store/deploy/rollback.sh` |
 | Logs | `journalctl -u xomexo -f` |
