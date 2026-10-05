@@ -23,6 +23,8 @@ export const store = {
   },
   /** Traditional Custodians of the land at the address above (update if you move) */
   traditionalCustodians: "the Whadjuk Noongar people",
+  /** Where the business runs from: admin shows times in this zone, e.g. "Australia/Sydney" */
+  timeZone: "Australia/Perth",
   hours: "Monday to Friday, 9am to 4pm AWST",
   instagram: "xomexo", // PLACEHOLDER handle, without the @
 

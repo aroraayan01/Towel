@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { Prisma } from "@/app/generated/prisma/client";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireStaff } from "@/lib/admin-auth";
+import { audit } from "@/lib/audit";
 import { collectionBySlug, isCategory } from "@/lib/collections";
 import { prisma } from "@/lib/prisma";
 import { deleteUpload } from "@/lib/uploads";
@@ -49,6 +50,9 @@ const productSchema = z
     tagline: z.string().trim().max(160),
     description: z.string().trim().min(20, "Write at least a sentence or two describing the product").max(5000),
     details: z.array(z.string().trim().min(1).max(200)).max(20),
+    specs: z
+      .array(z.object({ label: z.string().trim().min(1, "Every spec needs a label").max(60), value: z.string().trim().min(1, "Every spec needs a value").max(300) }))
+      .max(30),
     material: z.string().trim().max(200),
     care: z.string().trim().max(1000),
     active: z.boolean(),
@@ -80,7 +84,7 @@ const autoSku = (slug: string, colour: string, size: string) => ["XO", skuPart(s
 
 /** Create or update a product and its options. Photos are handled separately. */
 export async function saveProduct(_: SaveState, form: FormData): Promise<SaveState> {
-  await requireAdmin();
+  const staff = await requireStaff("products");
 
   let raw: unknown;
   try {
@@ -94,7 +98,7 @@ export async function saveProduct(_: SaveState, form: FormData): Promise<SaveSta
     for (const issue of parsed.error.issues) fields[String(issue.path[0])] ??= issue.message;
     return { error: parsed.error.issues[0]?.message ?? "Check the highlighted fields.", fields };
   }
-  const { id, variants, details, ...p } = parsed.data;
+  const { id, variants, details, specs, ...p } = parsed.data;
 
   const clash = await prisma.product.findFirst({ where: { slug: p.slug, ...(id ? { NOT: { id } } : {}) }, select: { name: true } });
   if (clash) return { error: `The web address /products/${p.slug} is already used by "${clash.name}".`, fields: { slug: "Already in use" } };
@@ -103,7 +107,7 @@ export async function saveProduct(_: SaveState, form: FormData): Promise<SaveSta
   let warning = "";
   try {
     productId = await prisma.$transaction(async (tx) => {
-      const data = { ...p, details: JSON.stringify(details), fromSeed: false };
+      const data = { ...p, details: JSON.stringify(details), specs: JSON.stringify(specs), fromSeed: false };
       const product = id ? await tx.product.update({ where: { id }, data }) : await tx.product.create({ data });
 
       const existing = await tx.variant.findMany({
@@ -158,6 +162,10 @@ export async function saveProduct(_: SaveState, form: FormData): Promise<SaveSta
     throw e;
   }
 
+  await audit(staff, id ? "product.update" : "product.create", p.name, {
+    href: `/admin/products/${productId}`,
+    detail: [`${variants.length} option${variants.length === 1 ? "" : "s"}`, p.active ? "live" : "hidden", warning].filter(Boolean).join(", "),
+  });
   revalidatePath("/", "layout");
   const qs = new URLSearchParams({ saved: id ? "1" : "new" });
   if (warning) qs.set("note", warning);
@@ -165,7 +173,7 @@ export async function saveProduct(_: SaveState, form: FormData): Promise<SaveSta
 }
 
 export async function deleteProduct(form: FormData) {
-  await requireAdmin();
+  const staff = await requireStaff("products");
   const id = String(form.get("id"));
   const product = await prisma.product.findUniqueOrThrow({
     where: { id },
@@ -174,17 +182,19 @@ export async function deleteProduct(form: FormData) {
   if (product._count.orderItems > 0) {
     // Orders refer to it, so it can't go. Hiding it has the same effect for customers.
     await prisma.product.update({ where: { id }, data: { active: false, fromSeed: false } });
+    await audit(staff, "product.hide", product.name, { href: `/admin/products/${id}`, detail: "Tried to delete; hidden because it has orders" });
     redirect(`/admin/products/${id}?note=${encodeURIComponent("This product has orders, so it was hidden from the shop instead of deleted.")}`);
   }
   await prisma.product.delete({ where: { id } });
   await Promise.all(product.images.map((img) => deleteUpload(img.url)));
+  await audit(staff, "product.delete", product.name);
   revalidatePath("/", "layout");
   redirect(`/admin/products?deleted=${encodeURIComponent(product.name)}`);
 }
 
 /** Removes the starter catalogue in one go, so the shop only shows real stock. */
 export async function deleteSampleProducts() {
-  await requireAdmin();
+  const staff = await requireStaff("products");
   const samples = await prisma.product.findMany({
     where: { fromSeed: true },
     select: { id: true, _count: { select: { orderItems: true } } },
@@ -193,6 +203,10 @@ export async function deleteSampleProducts() {
   const ordered = samples.filter((s) => s._count.orderItems > 0).map((s) => s.id);
   await prisma.product.deleteMany({ where: { id: { in: deletable } } });
   await prisma.product.updateMany({ where: { id: { in: ordered } }, data: { active: false } });
+  await audit(staff, "product.samples", "Sample catalogue", {
+    href: "/admin/products",
+    detail: `${deletable.length} deleted${ordered.length ? `, ${ordered.length} hidden because they have orders` : ""}`,
+  });
   revalidatePath("/", "layout");
   redirect(`/admin/products?removed=${deletable.length}&hidden=${ordered.length}`);
 }
@@ -206,7 +220,7 @@ async function touch(productId: string) {
 }
 
 export async function updateImage(form: FormData) {
-  await requireAdmin();
+  await requireStaff("products");
   const id = String(form.get("id"));
   const alt = String(form.get("alt") ?? "").trim().slice(0, 200);
   const colourName = String(form.get("colourName") ?? "").trim() || null;
@@ -215,7 +229,7 @@ export async function updateImage(form: FormData) {
 }
 
 export async function moveImage(form: FormData) {
-  await requireAdmin();
+  await requireStaff("products");
   const id = String(form.get("id"));
   const dir = form.get("dir") === "up" ? -1 : 1;
   const img = await prisma.productImage.findUniqueOrThrow({ where: { id } });
@@ -230,9 +244,10 @@ export async function moveImage(form: FormData) {
 }
 
 export async function deleteImage(form: FormData) {
-  await requireAdmin();
+  const staff = await requireStaff("products");
   const id = String(form.get("id"));
-  const img = await prisma.productImage.delete({ where: { id } });
+  const img = await prisma.productImage.delete({ where: { id }, include: { product: { select: { name: true } } } });
   await deleteUpload(img.url);
+  await audit(staff, "product.photos", img.product.name, { href: `/admin/products/${img.productId}`, detail: "Deleted a photo" });
   await touch(img.productId);
 }

@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import type { Prisma } from "@/app/generated/prisma/client";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireStaff } from "@/lib/admin-auth";
 import { CATEGORIES, CATEGORY_ORDER, collectionBySlug, isCategory } from "@/lib/collections";
 import { formatMoney } from "@/lib/money";
 import { PLACEHOLDER } from "@/lib/placeholder";
@@ -12,7 +12,7 @@ import { AdminTitle, table } from "../ui";
 import { DeleteSamplesButton } from "./DeleteSamplesButton";
 
 export default async function AdminProductsPage({ searchParams }: PageProps<"/admin/products">) {
-  await requireAdmin();
+  await requireStaff("products");
   const sp = await searchParams;
   const category = typeof sp.category === "string" && isCategory(sp.category) ? sp.category : undefined;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";

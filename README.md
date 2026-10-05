@@ -25,7 +25,7 @@ npm run db:seed                # load the starter catalogue
 npm run dev
 ```
 
-Open http://localhost:3000. The admin is at `/admin`.
+Open http://localhost:3000. The admin is at `/admin`: on the first visit it asks for `ADMIN_PASSWORD` once, to create the owner account (see Staff accounts below).
 
 With no `STRIPE_SECRET_KEY` the shop runs in **test mode**: checkout creates real orders and marks them paid without taking money, and the checkout page shows a notice saying so. With no `SMTP_HOST`, emails are printed to the server console instead of sent.
 
@@ -50,6 +50,23 @@ The 38 starter products (`prisma/seed.ts`) use free-licence **Unsplash stock pho
 
 The seed never overwrites or deletes products made or edited in admin.
 
+## Staff accounts
+
+Everyone who uses admin has their own login, so the activity log shows who did what.
+
+| Role | Can |
+|---|---|
+| **Owner** | Everything, including adding and removing staff and reading the activity log |
+| **Manager** | Products, prices, stock, photos, orders, reviews, messages and subscribers. Not staff |
+| **Fulfilment** | Orders (status, tracking, packing notes) and customer messages. Can't see revenue or change products and prices |
+
+- **First visit:** /admin asks for the server's `ADMIN_PASSWORD` (printed by `deploy/install.sh`) plus your name, email and a new password. That creates the owner account. After that, `ADMIN_PASSWORD` isn't used to log in.
+- **Adding someone** (Admin » Staff): enter their name, email and role. You get a temporary password to send them yourself (nothing is emailed). They choose their own password on first login.
+- **Someone leaves:** press **Switch off**. They're logged out at once, and their past changes stay in the activity log. **Reset password** gives them a new temporary one.
+- There's always at least one active owner: you can't switch off or demote the last one, or change your own role.
+- **Locked out?** If the only owner forgets their password, run `bash /home/grapme/xomexo-store/deploy/staff.sh reset you@example.com` on the server (as root). It prints a temporary password. `staff.sh list` shows every account. Locally it's `npm run staff -- reset you@example.com`.
+- **Activity log** (Admin » Activity) records logins, product and photo changes, order updates, review moderation, staff changes and subscriber exports.
+
 ## Features
 
 **Shopping**
@@ -70,23 +87,24 @@ The seed never overwrites or deletes products made or edited in admin.
 - Stripe Checkout (cards, Apple Pay, Google Pay, Afterpay) plus a webhook. The confirmation email is also a tax invoice (ABN, GST)
 - Order numbers run 1001, 1002, and so on
 
-**Admin** (`/admin`, password login)
+**Admin** (`/admin`, a login for each staff member)
 - Dashboard: revenue, orders waiting to be packed, low stock
 - Orders: a packing view that flags monograms, gift notes and gift wrap; status and tracking updates; a "shipped" email to the customer
 - Products: create and edit products, options, prices, stock and photos; hide, show or delete; remove the sample catalogue in one go
 - Approve reviews, read contact messages, export subscribers to CSV
+- Staff accounts with roles, and an activity log of who changed what
 
 **Everything else**
 - Pages: About, Contact, FAQ, Delivery, Returns (ACL mandatory text), Privacy (APPs), Terms, Care guide, Order tracking
 - SEO: per-page metadata, Open Graph share images, `sitemap.xml`, `robots.txt`, and schema.org data for Product, Offer, FAQ and Organization
 - Accessibility: skip link, focus states, labelled controls, reduced-motion support
-- Security: HMAC-signed admin session, rate limits on public forms, honeypot spam traps, secret order links, security headers
+- Security: per-person staff logins (scrypt-hashed passwords, signed sessions that end when an account is switched off), rate limits on logins and public forms, honeypot spam traps, secret order links, security headers
 
 ## Where things live
 
 | What | Where |
 |---|---|
-| Brand name, ABN, contact details, Traditional Custodians, delivery threshold, monogram price | `lib/store.ts` |
+| Brand name, ABN, contact details, Traditional Custodians, time zone, delivery threshold, monogram price | `lib/store.ts` |
 | Categories and collections (names, blurbs, tile photos) | `lib/collections.ts` |
 | Delivery rates and estimates | `lib/shipping.ts` |
 | Products, photos, colours, sizes, stock | /admin → Products (the starter samples live in `prisma/seed.ts`) |
@@ -104,7 +122,7 @@ The seed never overwrites or deletes products made or edited in admin.
 - [ ] **About page**: rewrite in your own words (`app/(shop)/about/page.tsx`)
 - [ ] **Stripe**: add `STRIPE_SECRET_KEY`; turn on Afterpay, Apple Pay and Google Pay in Dashboard → Settings → Payment methods; add a webhook to `https://<domain>/api/stripe/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` and `checkout.session.expired`, then set `STRIPE_WEBHOOK_SECRET`
 - [ ] **Email**: SMTP credentials and `MAIL_FROM` on your own domain (set up SPF and DKIM)
-- [ ] **Admin**: a strong `ADMIN_PASSWORD` and a random `ADMIN_SECRET` of 32+ characters
+- [ ] **Admin**: create the owner account at /admin (needs `ADMIN_PASSWORD` once), then add staff in Admin » Staff. Keep `ADMIN_SECRET` random and 32+ characters
 - [ ] **Legal**: have the Privacy policy and Terms reviewed (they are templates, not legal advice)
 - [ ] **`NEXT_PUBLIC_SITE_URL`** set to the live https URL
 - [ ] Place a real $1 order end to end, then refund it in Stripe
@@ -128,6 +146,7 @@ Commands (run as root in WHM » Terminal):
 | Update after a push | `bash /home/grapme/xomexo-store/deploy/update.sh` |
 | Put the old site back on xomexo.com | `bash /home/grapme/xomexo-store/deploy/rollback.sh` |
 | Logs | `cd /home/grapme/xomexo-store && docker compose logs -f` |
+| Reset a staff password (e.g. you're locked out) | `bash /home/grapme/xomexo-store/deploy/staff.sh reset you@example.com` |
 
 **Checkout is closed on the live site until Stripe is set up.** Without `STRIPE_SECRET_KEY`, orders would be marked paid without taking money, so in production the checkout page says "opens soon" instead. To open it, add the Stripe keys to `.env.local` and run `update.sh --force`. (`ALLOW_TEST_CHECKOUT=true` overrides this for a private staging copy. Never set it on the public site.)
 

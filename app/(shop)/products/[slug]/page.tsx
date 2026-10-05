@@ -9,6 +9,7 @@ import { Breadcrumbs, Stars } from "@/components/ui";
 import { CATEGORIES, collectionBySlug, type Category } from "@/lib/collections";
 import { formatPrice } from "@/lib/money";
 import { getProduct, relatedProducts } from "@/lib/products";
+import { parseJson } from "@/lib/json";
 import { store } from "@/lib/store";
 
 export async function generateMetadata({ params }: PageProps<"/products/[slug]">): Promise<Metadata> {
@@ -32,7 +33,8 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
 
   const related = await relatedProducts(p.id, p.collection, p.category);
   const collection = collectionBySlug(p.collection);
-  const details: string[] = JSON.parse(p.details);
+  const details = parseJson<string[]>(p.details, []);
+  const specs = parseJson<{ label: string; value: string }[]>(p.specs, []);
   const rating = p.reviews.length ? p.reviews.reduce((s, r) => s + r.rating, 0) / p.reviews.length : null;
 
   const jsonLd = {
@@ -43,7 +45,11 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
     material: p.material,
     brand: { "@type": "Brand", name: store.name },
     url: `${store.url}/products/${p.slug}`,
-    image: p.images.map((i) => i.url),
+    // Uploaded photos are stored as site-relative paths; search engines need full URLs
+    image: p.images.map((i) => (i.url.startsWith("/") ? `${store.url}${i.url}` : i.url)),
+    ...(specs.length && {
+      additionalProperty: specs.map((sp) => ({ "@type": "PropertyValue", name: sp.label, value: sp.value })),
+    }),
     offers: p.variants.map((v) => ({
       "@type": "Offer",
       sku: v.sku,
@@ -106,17 +112,39 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
             <Section title="Description" open>
               <p>{p.description}</p>
             </Section>
-            <Section title="Details and care">
-              <ul className="list-disc space-y-1 pl-4">
-                {details.map((d) => (
-                  <li key={d}>{d}</li>
-                ))}
-              </ul>
-              <p className="mt-3">
-                <span className="text-ink">Material:</span> {p.material}
-              </p>
-              <p className="mt-3">{p.care}</p>
-            </Section>
+            {specs.length > 0 && (
+              <Section title="Specifications">
+                <table className="w-full text-left">
+                  <tbody>
+                    {specs.map((sp, i) => (
+                      <tr key={i} className="border-b border-line last:border-0">
+                        <th scope="row" className="w-2/5 py-2 pr-4 align-top font-normal text-ink">
+                          {sp.label}
+                        </th>
+                        <td className="py-2 align-top">{sp.value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Section>
+            )}
+            {(details.length > 0 || p.material || p.care) && (
+              <Section title="Details and care">
+                {details.length > 0 && (
+                  <ul className="list-disc space-y-1 pl-4">
+                    {details.map((d) => (
+                      <li key={d}>{d}</li>
+                    ))}
+                  </ul>
+                )}
+                {p.material && (
+                  <p className={details.length ? "mt-3" : ""}>
+                    <span className="text-ink">Material:</span> {p.material}
+                  </p>
+                )}
+                {p.care && <p className="mt-3">{p.care}</p>}
+              </Section>
+            )}
             <Section title="Delivery and returns">
               <p>
                 Free standard delivery on orders over {formatPrice(store.commerce.freeShippingThresholdCents)}. Orders leave us

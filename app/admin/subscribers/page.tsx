@@ -1,9 +1,9 @@
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireStaff } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import { AdminTitle, card, table } from "../ui";
 
 export default async function SubscribersPage() {
-  await requireAdmin();
+  await requireStaff("subscribers");
   const subs = await prisma.subscriber.findMany({ orderBy: { createdAt: "desc" } });
   return (
     <>

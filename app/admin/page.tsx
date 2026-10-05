@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireStaff } from "@/lib/admin-auth";
 import { formatMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { checkoutOpen, paymentsLive } from "@/lib/stripe";
@@ -11,7 +11,7 @@ const PAID = ["PAID", "PACKED", "SHIPPED", "DELIVERED"];
 const daysAgo = (n: number) => new Date(Date.now() - n * 86400000);
 
 export default async function Dashboard() {
-  await requireAdmin();
+  await requireStaff("dashboard");
   const since = daysAgo(30);
   const [revenue, orderCount, toPack, lowStock, recent] = await Promise.all([
     prisma.order.aggregate({ where: { status: { in: PAID }, paidAt: { gte: since } }, _sum: { totalCents: true, gstCents: true } }),

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireStaff } from "@/lib/admin-auth";
 import { isCategory } from "@/lib/collections";
+import { parseJson } from "@/lib/json";
 import { prisma } from "@/lib/prisma";
 import { AdminTitle } from "../../ui";
 import { ProductEditor } from "../ProductEditor";
@@ -11,7 +12,7 @@ import { ProductImages } from "../ProductImages";
 const money = (cents: number | null) => (cents == null ? "" : (cents / 100).toFixed(2));
 
 export default async function EditProductPage({ params, searchParams }: PageProps<"/admin/products/[id]">) {
-  await requireAdmin();
+  await requireStaff("products");
   const { id } = await params;
   const { saved, note } = await searchParams;
 
@@ -24,10 +25,8 @@ export default async function EditProductPage({ params, searchParams }: PageProp
   });
   if (!p) notFound();
 
-  let details: string[] = [];
-  try {
-    details = JSON.parse(p.details);
-  } catch {}
+  const details = parseJson<string[]>(p.details, []);
+  const specs = parseJson<{ label: string; value: string }[]>(p.specs, []);
 
   // Options kept only for order history (removed, but ordered before) are left out of the editor
   const variants = p.variants.filter((v) => !v.archived);
@@ -76,6 +75,7 @@ export default async function EditProductPage({ params, searchParams }: PageProp
           tagline: p.tagline,
           description: p.description,
           details,
+          specs,
           material: p.material,
           care: p.care,
           active: p.active,

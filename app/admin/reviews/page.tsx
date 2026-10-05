@@ -1,11 +1,11 @@
 import { Stars } from "@/components/ui";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireStaff } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import { moderateReview } from "../actions";
 import { AdminTitle, card } from "../ui";
 
 export default async function AdminReviewsPage() {
-  await requireAdmin();
+  await requireStaff("reviews");
   const [pending, recent] = await Promise.all([
     prisma.review.findMany({ where: { approved: false }, include: { product: true }, orderBy: { createdAt: "asc" } }),
     prisma.review.findMany({ where: { approved: true }, include: { product: true }, orderBy: { createdAt: "desc" }, take: 20 }),

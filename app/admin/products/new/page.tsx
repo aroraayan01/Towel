@@ -1,11 +1,11 @@
 import Link from "next/link";
 
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireStaff } from "@/lib/admin-auth";
 import { AdminTitle } from "../../ui";
 import { ProductEditor } from "../ProductEditor";
 
 export default async function NewProductPage() {
-  await requireAdmin();
+  await requireStaff("products");
   return (
     <>
       <Link href="/admin/products" className="text-grey text-sm hover:underline">
@@ -21,6 +21,7 @@ export default async function NewProductPage() {
           tagline: "",
           description: "",
           details: [],
+          specs: [],
           material: "",
           care: "",
           // Hidden until it has photos and has been checked

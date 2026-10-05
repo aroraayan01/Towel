@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useActionState, useMemo, useState } from "react";
 
 import { CATEGORIES, CATEGORY_ORDER, COLLECTIONS, type Category } from "@/lib/collections";
@@ -15,6 +15,7 @@ export type EditorProduct = {
   tagline: string;
   description: string;
   details: string[];
+  specs: { label: string; value: string }[];
   material: string;
   care: string;
   active: boolean;
@@ -38,6 +39,15 @@ export type EditorVariant = {
 };
 
 type Row = EditorVariant & { key: string };
+type SpecRow = { key: string; label: string; value: string };
+
+/** Suggested labels for the specifications table, by category. Any label can be typed. */
+const SPEC_LABELS: Record<Category, string[]> = {
+  bath: ["Size", "Weight", "Fibre", "Weave", "Pile", "Absorbency", "Origin"],
+  bedding: ["Dimensions", "Fill", "Fill weight", "Warmth", "Fabric", "Thread count", "Closure", "Origin"],
+  rugs: ["Dimensions", "Pile height", "Construction", "Backing", "Fibre", "Suitable for", "Origin"],
+  leather: ["Dimensions", "Leather", "Lining", "Hardware", "Strap drop", "Capacity", "Weight", "Origin"],
+};
 
 const slugify = (s: string) =>
   s
@@ -80,6 +90,7 @@ export function ProductEditor({ product }: { product: EditorProduct }) {
   const [f, setF] = useState(() => ({ ...product, details: product.details.join("\n") }));
   const [slugTouched, setSlugTouched] = useState(Boolean(product.id));
   const [rows, setRows] = useState<Row[]>(() => (product.variants.length ? product.variants.map(withKey) : [blankRow()]));
+  const [specs, setSpecs] = useState<SpecRow[]>(() => product.specs.map((sp) => ({ ...sp, key: `s${nextKey++}` })));
 
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
   const setRow = (key: string, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -95,6 +106,8 @@ export function ProductEditor({ product }: { product: EditorProduct }) {
     tagline: f.tagline,
     description: f.description,
     details: f.details.split("\n").map((l) => l.replace(/^[-•*]\s*/, "").trim()).filter(Boolean),
+    // Rows left completely empty are dropped rather than flagged
+    specs: specs.map(({ label, value }) => ({ label, value })).filter((sp) => sp.label.trim() || sp.value.trim()),
     material: f.material,
     care: f.care,
     active: f.active,
@@ -170,6 +183,8 @@ export function ProductEditor({ product }: { product: EditorProduct }) {
                 </Field>
               </div>
             </Card>
+
+            <Specs specs={specs} setSpecs={setSpecs} category={f.category} error={err.specs} />
 
             <Options rows={rows} setRows={setRows} setRow={setRow} error={err.variants} slug={f.slug} />
           </div>
@@ -413,6 +428,92 @@ function Options({
           {combos.length > fresh.length && <p className="text-grey text-xs">{combos.length - fresh.length} already in the list, skipped.</p>}
         </div>
       )}
+    </Card>
+  );
+}
+
+function Specs({
+  specs,
+  setSpecs,
+  category,
+  error,
+}: {
+  specs: SpecRow[];
+  setSpecs: React.Dispatch<React.SetStateAction<SpecRow[]>>;
+  category: Category;
+  error?: string;
+}) {
+  const set = (key: string, patch: Partial<SpecRow>) => setSpecs((ss) => ss.map((sp) => (sp.key === key ? { ...sp, ...patch } : sp)));
+  const move = (i: number, d: -1 | 1) =>
+    setSpecs((ss) => {
+      const next = [...ss];
+      [next[i], next[i + d]] = [next[i + d], next[i]];
+      return next;
+    });
+  const unused = SPEC_LABELS[category].filter((l) => !specs.some((sp) => sp.label.toLowerCase() === l.toLowerCase()));
+
+  return (
+    <Card title="Specifications">
+      <p className="text-grey -mt-2 text-[13px]">
+        Shown as a table on the product page. Put measurements here, e.g. Dimensions: 210 × 210cm, Fill: 500gsm Australian merino. Leave it
+        empty and the table is hidden.
+      </p>
+      {error && <p className="text-sale text-sm">{error}</p>}
+      {specs.length > 0 && (
+        <div className="space-y-2">
+          {specs.map((sp, i) => (
+            <div key={sp.key} className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] items-center gap-2">
+              <input
+                className="input px-2 py-1.5"
+                value={sp.label}
+                placeholder="Label"
+                maxLength={60}
+                list="spec-labels"
+                onChange={(e) => set(sp.key, { label: e.target.value })}
+                aria-label="Spec label"
+              />
+              <input className="input px-2 py-1.5" value={sp.value} placeholder="Value" maxLength={300} onChange={(e) => set(sp.key, { value: e.target.value })} aria-label="Spec value" />
+              <span className="flex">
+                <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="text-grey hover:text-ink grid size-8 place-items-center disabled:opacity-25" aria-label="Move up">
+                  <ArrowUp size={15} />
+                </button>
+                <button type="button" onClick={() => move(i, 1)} disabled={i === specs.length - 1} className="text-grey hover:text-ink grid size-8 place-items-center disabled:opacity-25" aria-label="Move down">
+                  <ArrowDown size={15} />
+                </button>
+                <button type="button" onClick={() => setSpecs((ss) => ss.filter((x) => x.key !== sp.key))} className="text-grey hover:text-sale grid size-8 place-items-center" aria-label="Remove this spec">
+                  <Trash2 size={15} />
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <datalist id="spec-labels">
+        {SPEC_LABELS[category].map((l) => (
+          <option key={l} value={l} />
+        ))}
+      </datalist>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="btn btn-line h-9 px-3 text-[12px]"
+          onClick={() => setSpecs((ss) => [...ss, { key: `s${nextKey++}`, label: "", value: "" }])}
+          disabled={specs.length >= 30}
+        >
+          <Plus size={14} className="mr-1" /> Add spec
+        </button>
+        {unused.slice(0, 6).map((l) => (
+          <button
+            key={l}
+            type="button"
+            className="border-line hover:border-ink border px-2.5 py-1 text-[12px]"
+            onClick={() => setSpecs((ss) => [...ss, { key: `s${nextKey++}`, label: l, value: "" }])}
+            disabled={specs.length >= 30}
+          >
+            + {l}
+          </button>
+        ))}
+      </div>
     </Card>
   );
 }

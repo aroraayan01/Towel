@@ -24,3 +24,13 @@ export async function rateLimited(bucket: string, limit: number, windowMs: numbe
   }
   return recent.length > limit;
 }
+
+/** Same as rateLimited, but keyed on something other than the IP (e.g. an email address being logged into). */
+export function rateLimitedKey(bucket: string, key: string, limit: number, windowMs: number) {
+  const k = `${bucket}:key:${key}`;
+  const now = Date.now();
+  const recent = (hits.get(k) ?? []).filter((t) => now - t < windowMs);
+  recent.push(now);
+  hits.set(k, recent);
+  return recent.length > limit;
+}

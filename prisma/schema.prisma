@@ -30,6 +30,8 @@ model Product {
   description  String
   /// JSON array of bullet-point strings
   details      String
+  /// JSON array of { label, value } rows for the specifications table
+  specs        String   @default("[]")
   material     String
   care         String
   featured     Boolean  @default(false)
@@ -190,4 +192,45 @@ model ContactMessage {
   message   String
   handled   Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+/// People who can log in to /admin. Roles are defined in lib/staff.ts.
+model StaffUser {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String
+  /// "owner" | "manager" | "fulfilment"
+  role               String
+  /// scrypt hash, see lib/passwords.ts
+  passwordHash       String
+  /// Set for new accounts and password resets: they choose their own on first login
+  mustChangePassword Boolean   @default(true)
+  active             Boolean   @default(true)
+  /// Bumped on password change, reset or deactivation, which ends every session
+  sessionVersion     Int       @default(1)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  activity AuditLog[]
+}
+
+/// Who did what in /admin
+model AuditLog {
+  id        String   @id @default(cuid())
+  staffId   String?
+  /// Kept as text so the log still reads correctly if the account is removed
+  staffName String
+  /// e.g. "product.update", "order.status", "staff.create"
+  action    String
+  /// Human-readable subject, e.g. "Merino Wool Quilt" or "Order #1042"
+  target    String
+  /// Link to the thing in admin, when there is one
+  href      String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  staff StaffUser? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
 }

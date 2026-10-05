@@ -1,14 +1,16 @@
 import { revalidatePath } from "next/cache";
 import type { NextRequest } from "next/server";
 
-import { isAdmin } from "@/lib/admin-auth";
+import { staffFor } from "@/lib/admin-auth";
+import { audit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { saveUpload, UploadError } from "@/lib/uploads";
 
 // Adds one photo to a product. The admin page sends files one at a time, so
 // a slow connection only ever has a single photo in flight.
 export async function POST(req: NextRequest, ctx: RouteContext<"/api/admin/products/[id]/images">) {
-  if (!(await isAdmin())) return Response.json({ error: "Your admin session has ended. Log in again." }, { status: 401 });
+  const staff = await staffFor("products");
+  if (!staff) return Response.json({ error: "Your admin session has ended, or your role can't edit products. Log in again." }, { status: 401 });
 
   const { id } = await ctx.params;
   const product = await prisma.product.findUnique({
@@ -35,6 +37,7 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/admin/produ
     });
     // The product now belongs to the shop owner, not the sample catalogue
     await prisma.product.update({ where: { id: product.id }, data: { fromSeed: false } });
+    await audit(staff, "product.photos", product.name, { href: `/admin/products/${product.id}`, detail: colourName ? `Added a photo for ${colourName}` : "Added a photo" });
     revalidatePath(`/products/${product.slug}`);
     return Response.json({ id: image.id, url });
   } catch (e) {

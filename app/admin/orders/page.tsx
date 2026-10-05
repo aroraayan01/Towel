@@ -1,13 +1,13 @@
 import Link from "next/link";
 
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireStaff } from "@/lib/admin-auth";
 import { formatMoney } from "@/lib/money";
 import { ORDER_STATUSES, STATUS_LABEL } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 import { AdminTitle, card, StatusBadge, table } from "../ui";
 
 export default async function OrdersPage({ searchParams }: PageProps<"/admin/orders">) {
-  await requireAdmin();
+  await requireStaff("orders");
   const { status, q } = await searchParams;
   const s = typeof status === "string" && (ORDER_STATUSES as readonly string[]).includes(status) ? status : undefined;
   const query = typeof q === "string" ? q.trim() : "";

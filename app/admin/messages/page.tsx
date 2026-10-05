@@ -1,10 +1,10 @@
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireStaff } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import { markMessage } from "../actions";
 import { AdminTitle, card } from "../ui";
 
 export default async function AdminMessagesPage() {
-  await requireAdmin();
+  await requireStaff("messages");
   const messages = await prisma.contactMessage.findMany({ orderBy: [{ handled: "asc" }, { createdAt: "desc" }], take: 100 });
 
   return (

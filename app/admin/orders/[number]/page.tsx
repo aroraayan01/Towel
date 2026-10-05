@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireStaff } from "@/lib/admin-auth";
 import { formatMoney } from "@/lib/money";
 import { ORDER_STATUSES, STATUS_LABEL } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
@@ -9,7 +9,7 @@ import { updateOrder } from "../../actions";
 import { card, StatusBadge } from "../../ui";
 
 export default async function AdminOrderPage({ params }: PageProps<"/admin/orders/[number]">) {
-  await requireAdmin();
+  await requireStaff("orders");
   const { number } = await params;
   const o = await prisma.order.findUnique({ where: { number }, include: { items: true } });
   if (!o) notFound();
@@ -73,7 +73,8 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
         <div className="space-y-6">
           <section className={card}>
             <h2 className="mb-3 text-xl">Update</h2>
-            <form action={updateOrder} className="space-y-4">
+            {/* Keyed on the saved values so the fields show them again after a save (React resets forms) */}
+            <form key={`${o.status}|${o.trackingNumber ?? ""}|${o.notes ?? ""}`} action={updateOrder} className="space-y-4">
               <input type="hidden" name="id" value={o.id} />
               <div>
                 <label htmlFor="status" className="field-label">Status</label>

@@ -235,8 +235,9 @@ if [ -z "$(dig +short "${OLD_SUB}.${DOMAIN}" 2>/dev/null || true)" ]; then
 fi
 printf '    https://%s/admin      admin\n' "$DOMAIN"
 # Read back from the file, so a re-run still shows it
-printf '\n    \033[1;33mAdmin password: %s\033[0m\n    (stored only in %s; after changing it, run update.sh --force)\n' \
-  "$(grep -oP '^ADMIN_PASSWORD=\K.*' "$ENV_FILE")" "$ENV_FILE"
+printf '\n    \033[1;33mAdmin setup password: %s\033[0m\n' "$(grep -oP '^ADMIN_PASSWORD=\K.*' "$ENV_FILE")"
+printf '    Open https://%s/admin and enter it once to create the owner account.\n' "$DOMAIN"
+printf '    After that everyone logs in with their own email and password (staff are added in Admin » Staff).\n'
 printf '\n    Checkout stays closed until STRIPE_SECRET_KEY is set in %s.\n' "$ENV_FILE"
 printf '    Logs:      cd %s && docker compose logs -f\n' "$APP_DIR"
 printf '    Updates:   bash %s/deploy/update.sh\n' "$APP_DIR"
