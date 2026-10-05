@@ -104,7 +104,7 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
   const items = [];
   for (const l of d.lines) {
     const v = variants.find((x) => x.id === l.variantId);
-    if (!v || !v.product.active) return { error: "Something in your cart is no longer available. Please remove it and try again." };
+    if (!v || v.archived || !v.product.active) return { error: "Something in your cart is no longer available. Please remove it and try again." };
     const alreadyInOrder = items.filter((i) => i.variantId === v.id).reduce((n, i) => n + i.quantity, 0);
     if (v.stock < alreadyInOrder + l.quantity) {
       return {

@@ -47,3 +47,6 @@ next-env.d.ts
 /prisma/*.db-journal
 /*.db
 /*.db-journal
+
+# product photos uploaded in /admin (kept on the server, never in git)
+/uploads/

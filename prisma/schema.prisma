@@ -22,9 +22,9 @@ model Product {
   id           String   @id @default(cuid())
   slug         String   @unique
   name         String
-  /// "towels" | "rugs"
+  /// "bath" | "bedding" | "rugs" | "leather" (lib/collections.ts)
   category     String
-  /// e.g. "bath-towels", "beach-towels", "hand-towels", "bath-mats", "runners", "area-rugs"
+  /// A collection slug within the category, e.g. "bath-towels", "quilts", "bags"
   collection   String
   tagline      String
   description  String
@@ -37,6 +37,9 @@ model Product {
   isNew        Boolean  @default(false)
   monogramable Boolean  @default(false)
   active       Boolean  @default(true)
+  /// True for the starter catalogue loaded by prisma/seed.ts. Products made or
+  /// edited in /admin are false, and the seed never touches those.
+  fromSeed     Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -78,6 +81,8 @@ model Variant {
   compareAtCents Int?
   stock       Int     @default(0)
   sortOrder   Int     @default(0)
+  /// Removed from sale but kept because past orders refer to it. Never shown in the shop.
+  archived    Boolean @default(false)
 
   product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]

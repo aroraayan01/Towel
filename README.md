@@ -32,17 +32,23 @@ With no `STRIPE_SECRET_KEY` the shop runs in **test mode**: checkout creates rea
 > npm 11 blocks install scripts by default. If `better-sqlite3` fails to load, run
 > `npm approve-scripts better-sqlite3 prisma @prisma/engines esbuild` and then `npm rebuild`.
 
-## Photos
+## Products and photos
 
-Product and page photos are **free-licence stand-ins from Unsplash** ([licence](https://unsplash.com/license)), loaded from Unsplash's CDN at the size each screen needs (`lib/image-loader.ts`). The catalogue in `prisma/seed.ts` was written to match what the photos show, but they are not photos of your stock.
+Everything is managed in **/admin → Products**:
 
-**Replace them with your own before you sell anything.** Showing a product that isn't the one customers will receive is misleading under the Australian Consumer Law.
+- **New product**: name, web address, tagline, description, bullet-point details, material, care, category and collection, labels (New, Bestseller, Featured) and whether personalisation is offered
+- **Options**: one row per colour and size, each with its own price, optional "was" price, stock and SKU (left blank, one is generated). "Add colours × sizes in bulk" fills in every combination at once
+- **Photos**: drag in several at once. Each can be shown for every colour or for one colour only, reordered (the first is the main photo) and given alt text. Uploads are rotated, capped at 2400px and stored as WebP; the shop serves each one resized for the screen
+- New products start hidden, so you can add photos and check them before switching on **Show in shop**
+- Removing an option or product that has been ordered hides it instead of deleting it, so order history stays intact
 
-To use your own photos:
+Photos are stored outside the code, in `uploads/` locally and `/home/grapme/xomexo-data/uploads` on the server (next to the database), so deploys never touch them. Back that folder up along with the database.
 
-- Each product has a list of images, and each image can be tied to one colour (it shows when that colour is picked) or left untied (it shows for every colour).
-- Set the image URLs in `prisma/seed.ts`, or edit the `ProductImage` table with `npm run db:studio`.
-- Any image URL works. To have Next.js serve other hosts, add them to `lib/image-loader.ts`.
+### The sample catalogue
+
+The 38 starter products (`prisma/seed.ts`) use free-licence **Unsplash stock photos** and are marked as samples. They must not stay up once you sell: showing a product that isn't what customers receive is misleading under the Australian Consumer Law. Either edit a sample into one of your own products (it then stops being a sample), or press **Remove sample products** on the Products page once your range is in. Samples that appear in past orders are hidden rather than deleted.
+
+The seed never overwrites or deletes products made or edited in admin.
 
 ## Features
 
@@ -67,7 +73,7 @@ To use your own photos:
 **Admin** (`/admin`, password login)
 - Dashboard: revenue, orders waiting to be packed, low stock
 - Orders: a packing view that flags monograms, gift notes and gift wrap; status and tracking updates; a "shipped" email to the customer
-- Edit prices and stock, hide or show products
+- Products: create and edit products, options, prices, stock and photos; hide, show or delete; remove the sample catalogue in one go
 - Approve reviews, read contact messages, export subscribers to CSV
 
 **Everything else**
@@ -83,7 +89,7 @@ To use your own photos:
 | Brand name, ABN, contact details, Traditional Custodians, delivery threshold, monogram price | `lib/store.ts` |
 | Categories and collections (names, blurbs, tile photos) | `lib/collections.ts` |
 | Delivery rates and estimates | `lib/shipping.ts` |
-| Products, photos, colours, sizes | `prisma/seed.ts` → `npm run db:seed` (safe to re-run; keeps variant ids stable) |
+| Products, photos, colours, sizes, stock | /admin → Products (the starter samples live in `prisma/seed.ts`) |
 | Colours and type | `app/globals.css` (`@theme`), `app/layout.tsx` (Bodoni Moda for headings, Archivo for text) |
 | Home page copy and photos | `app/(shop)/page.tsx` |
 | Emails | `lib/email.ts` |
@@ -91,7 +97,8 @@ To use your own photos:
 ## Launch checklist
 
 - [ ] **Name and business details** in `lib/store.ts`: brand, ABN, legal name, address, phone, email, Instagram handle, Traditional Custodians for your location
-- [ ] **Your own photos** for every product and for the home and About pages (see above)
+- [ ] **Your products** added in /admin → Products, then **Remove sample products**
+- [ ] **Your own photos** for the home and About pages too (those are set in `app/(shop)/page.tsx` and `about/page.tsx`)
 - [ ] **Product copy**: check every claim against the real stock, especially "Australian merino", "French flax linen", "22 momme", "full-grain" and "vegetable-tanned". Material claims are what shoppers and the ACCC look at hardest
 - [ ] **Reviews**: reseed with `SEED_REVIEWS=false npm run db:seed` so the sample reviews are removed. Publishing reviews that aren't from real customers breaches the ACL
 - [ ] **About page**: rewrite in your own words (`app/(shop)/about/page.tsx`)

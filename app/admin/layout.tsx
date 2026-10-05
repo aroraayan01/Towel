@@ -20,7 +20,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const nav: [string, string, number?][] = [
     ["/admin", "Dashboard"],
     ["/admin/orders", "Orders", toPack],
-    ["/admin/products", "Products & stock"],
+    ["/admin/products", "Products"],
     ["/admin/reviews", "Reviews", pendingReviews],
     ["/admin/messages", "Messages", openMessages],
     ["/admin/subscribers", "Subscribers"],

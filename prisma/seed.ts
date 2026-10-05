@@ -789,9 +789,17 @@ const skuFor = (...parts: string[]) =>
   "XO-" + parts.map((p) => p.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "")).join("-");
 
 async function main() {
+  let skipped = 0;
   for (const [i, p] of products.entries()) {
     const { colours, sizes, reviews, details, shared, ...rest } = p;
-    const data = { ...rest, details: JSON.stringify(details) };
+    const data = { ...rest, details: JSON.stringify(details), fromSeed: true };
+
+    // Products made or edited in /admin belong to the shop owner: never overwrite them
+    const owned = await prisma.product.findFirst({ where: { slug: p.slug, fromSeed: false } });
+    if (owned) {
+      skipped++;
+      continue;
+    }
     const product = await prisma.product.upsert({ where: { slug: p.slug }, create: data, update: data });
 
     await prisma.productImage.deleteMany({ where: { productId: product.id } });
@@ -823,6 +831,7 @@ async function main() {
           priceCents: s.price,
           compareAtCents: s.compareAt ?? null,
           sortOrder: j,
+          archived: false,
         };
         const match = existing.find((e) => e.colourName === c.name && e.size === s.label);
         const saved = match
@@ -832,9 +841,9 @@ async function main() {
         j++;
       }
     }
-    // Variants that were dropped: delete them, or just hide stock if they've been ordered
+    // Variants that were dropped: delete them, or archive them if they've been ordered
     await prisma.variant.deleteMany({ where: { productId: product.id, id: { notIn: kept }, orderItems: { none: {} } } });
-    await prisma.variant.updateMany({ where: { productId: product.id, id: { notIn: kept } }, data: { stock: 0 } });
+    await prisma.variant.updateMany({ where: { productId: product.id, id: { notIn: kept } }, data: { stock: 0, archived: true } });
 
     // Only ever touch the sample reviews below; real customer reviews are left alone
     for (const r of reviews ?? []) {
@@ -849,8 +858,11 @@ async function main() {
     }
   }
 
-  // Drop products no longer in the catalogue (unless they've been ordered)
-  await prisma.product.deleteMany({ where: { slug: { notIn: products.map((p) => p.slug) }, orderItems: { none: {} } } });
+  // Drop sample products no longer in the catalogue (unless they've been ordered).
+  // Only ever sample products: anything made in /admin is left alone.
+  await prisma.product.deleteMany({
+    where: { fromSeed: true, slug: { notIn: products.map((p) => p.slug) }, orderItems: { none: {} } },
+  });
 
   await prisma.discountCode.upsert({
     where: { code: "WELCOME10" },
@@ -858,7 +870,10 @@ async function main() {
     update: {},
   });
 
-  console.log(`Seeded ${products.length} products${SEED_REVIEWS ? " with demo reviews" : ""}.`);
+  console.log(
+    `Seeded ${products.length - skipped} products${SEED_REVIEWS ? " with demo reviews" : ""}` +
+      (skipped ? `; left ${skipped} edited in /admin untouched.` : ".")
+  );
 }
 
 main()

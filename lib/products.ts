@@ -5,7 +5,7 @@ import { PLACEHOLDER } from "./placeholder";
 import { prisma } from "./prisma";
 
 const listInclude = {
-  variants: { orderBy: [{ sortOrder: "asc" as const }, { priceCents: "asc" as const }] },
+  variants: { where: { archived: false }, orderBy: [{ sortOrder: "asc" as const }, { priceCents: "asc" as const }] },
   images: { orderBy: { sortOrder: "asc" as const } },
   reviews: { where: { approved: true }, select: { rating: true } },
 } satisfies Prisma.ProductInclude;
@@ -83,7 +83,7 @@ export async function listProducts(filter: ProductFilter = {}) {
       { tagline: { contains: q } },
       { description: { contains: q } },
       { material: { contains: q } },
-      { variants: { some: { colourName: { contains: q } } } },
+      { variants: { some: { archived: false, colourName: { contains: q } } } },
     ];
   }
 
@@ -122,7 +122,7 @@ export async function getProduct(slug: string) {
   return prisma.product.findFirst({
     where: { slug, active: true },
     include: {
-      variants: { orderBy: [{ sortOrder: "asc" }, { priceCents: "asc" }] },
+      variants: { where: { archived: false }, orderBy: [{ sortOrder: "asc" }, { priceCents: "asc" }] },
       images: { orderBy: { sortOrder: "asc" } },
       reviews: { where: { approved: true }, orderBy: { createdAt: "desc" } },
     },
@@ -148,7 +148,7 @@ export async function productsBySlugs(slugs: string[]) {
 
 export async function allColours(category?: string) {
   return prisma.variant.findMany({
-    where: { product: { active: true, ...(category ? { category } : {}) } },
+    where: { archived: false, product: { active: true, ...(category ? { category } : {}) } },
     select: { colourName: true, colourHex: true },
     distinct: ["colourName"],
     orderBy: { colourName: "asc" },

@@ -162,10 +162,21 @@ export async function ShopListing({
             <ProductGrid products={products} eager={4} />
           ) : (
             <div className="border-t border-line py-20 text-center">
-              <p className="text-lg">No products match those filters.</p>
-              <Link href={basePath} className="btn btn-line mt-6">
-                Clear filters
-              </Link>
+              {active.length ? (
+                <>
+                  <p className="text-lg">No products match those filters.</p>
+                  <Link href={basePath} className="btn btn-line mt-6">
+                    Clear filters
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg">Nothing here just yet.</p>
+                  <Link href="/shop" className="btn btn-line mt-6">
+                    Shop everything
+                  </Link>
+                </>
+              )}
             </div>
           )}
         </div>

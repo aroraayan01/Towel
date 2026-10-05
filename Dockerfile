@@ -38,6 +38,7 @@ ARG APP_GID=1000
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     DATABASE_URL=file:/data/xomexo.db \
+    UPLOADS_DIR=/data/uploads \
     HOME=/tmp \
     PORT=3000 \
     HOSTNAME=0.0.0.0

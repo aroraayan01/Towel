@@ -12,5 +12,7 @@ export default function imageLoader({ src, width, quality }: { src: string; widt
     url.searchParams.set("fit", "max");
     return url.toString();
   }
+  // Photos uploaded in /admin are resized by our own /uploads route
+  if (src.startsWith("/uploads/")) return `${src}?w=${width}`;
   return src;
 }

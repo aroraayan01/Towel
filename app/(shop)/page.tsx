@@ -41,8 +41,12 @@ const MATERIALS = [
 
 export default async function HomePage() {
   const all = await listProducts();
-  const bestsellers = all.filter((p) => p.bestseller).slice(0, 8);
-  const leather = all.filter((p) => p.category === "leather" && (p.bestseller || p.collection === "bags")).slice(0, 4);
+  // Sections fall back sensibly while the range is small, and hide when empty
+  const marked = all.filter((p) => p.bestseller);
+  const bestsellers = (marked.length ? marked : all).slice(0, 8);
+  const allLeather = all.filter((p) => p.category === "leather");
+  const picks = allLeather.filter((p) => p.bestseller || p.collection === "bags");
+  const leather = (picks.length >= 2 ? picks : allLeather).slice(0, 4);
   const bedding = all.filter((p) => p.category === "bedding").slice(0, 3);
   const fresh = all.filter((p) => p.isNew).slice(0, 4);
 
@@ -113,60 +117,72 @@ export default async function HomePage() {
       </section>
 
       {/* Bestsellers */}
-      <section className="page-x pb-16 md:pb-24">
-        <SectionHead title="Bestsellers" href="/shop" link="Shop all" />
-        <ProductGrid products={bestsellers} />
-      </section>
+      {bestsellers.length > 0 && (
+        <section className="page-x pb-16 md:pb-24">
+          <SectionHead title={marked.length ? "Bestsellers" : "Shop the range"} href="/shop" link="Shop all" />
+          <ProductGrid products={bestsellers} />
+        </section>
+      )}
 
       {/* Leather editorial */}
-      <section className="relative h-[80svh] max-h-[860px] min-h-[480px] overflow-hidden bg-[#2a170f]">
-        <Photo src={u("1637759292654-a12cb2be085e")} alt="Close-up of cognac full-grain leather and stitching" sizes="100vw" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent" />
-        <div className="page-x absolute inset-0 flex flex-col justify-center text-white">
-          <p className="caps !tracking-[0.2em] text-brass">The leather edit</p>
-          <h2 className="mt-5 max-w-xl text-[40px] leading-[1.05] md:text-[68px]">Full-grain, and better every year.</h2>
-          <p className="mt-6 max-w-md text-white/80">
-            Weekenders, satchels, wallets and pieces for the home, cut from full-grain and vegetable-tanned hides. Add your
-            initials to most pieces.
-          </p>
-          <Link href="/shop/leather" className="btn btn-white mt-9 self-start">
-            Shop leather
-          </Link>
-        </div>
-      </section>
-      <section className="page-x py-14 md:py-20">
-        <ProductGrid products={leather} />
-      </section>
+      {leather.length > 0 && (
+        <>
+          <section className="relative h-[80svh] max-h-[860px] min-h-[480px] overflow-hidden bg-[#2a170f]">
+            <Photo src={u("1637759292654-a12cb2be085e")} alt="Close-up of cognac full-grain leather and stitching" sizes="100vw" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent" />
+            <div className="page-x absolute inset-0 flex flex-col justify-center text-white">
+              <p className="caps !tracking-[0.2em] text-brass">The leather edit</p>
+              <h2 className="mt-5 max-w-xl text-[40px] leading-[1.05] md:text-[68px]">Full-grain, and better every year.</h2>
+              <p className="mt-6 max-w-md text-white/80">
+                Weekenders, satchels, wallets and pieces for the home, cut from full-grain and vegetable-tanned hides. Add your initials to
+                most pieces.
+              </p>
+              <Link href="/shop/leather" className="btn btn-white mt-9 self-start">
+                Shop leather
+              </Link>
+            </div>
+          </section>
+          <section className="page-x py-14 md:py-20">
+            <ProductGrid products={leather} />
+          </section>
+        </>
+      )}
 
       {/* Bedding editorial */}
-      <section className="bg-bone">
-        <div className="page-x grid items-center gap-10 py-16 md:grid-cols-2 md:gap-16 md:py-24">
-          <div className="relative aspect-[4/5]">
-            <Photo src={u("1639813806536-11895df1ff64")} alt="Sage linen bedding on a timber bed" sizes="(min-width: 768px) 50vw, 100vw" />
-          </div>
-          <div>
-            <p className="caps !tracking-[0.2em] text-brass">Bedding</p>
-            <h2 className="mt-5 text-[38px] leading-[1.05] md:text-[56px]">Linen, merino and silk.</h2>
-            <p className="mt-6 max-w-md text-grey">
-              Stonewashed French linen that softens with every wash, Australian merino quilts that breathe, and mulberry silk
-              pillowcases. Quilts come in five sizes from Single to Super King.
-            </p>
-            <div className="mt-9 grid grid-cols-3 gap-3">
-              {bedding.map((p) => (
-                <Link key={p.id} href={`/products/${p.slug}`} className="group block">
-                  <div className="relative aspect-[4/5] overflow-hidden bg-stone">
-                    <Photo src={p.image} alt={p.imageAlt} sizes="15vw" className="transition duration-700 group-hover:scale-[1.04]" />
-                  </div>
-                  <p className="mt-2 text-[13px] leading-snug">{p.name}</p>
-                </Link>
-              ))}
+      {bedding.length > 0 && (
+        <section className="bg-bone">
+          <div className="page-x grid items-center gap-10 py-16 md:grid-cols-2 md:gap-16 md:py-24">
+            <div className="relative aspect-[4/5]">
+              <Photo
+                src={u("1639813806536-11895df1ff64")}
+                alt="Sage linen bedding on a timber bed"
+                sizes="(min-width: 768px) 50vw, 100vw"
+              />
             </div>
-            <Link href="/shop/bedding" className="btn btn-dark mt-9">
-              Shop bedding
-            </Link>
+            <div>
+              <p className="caps !tracking-[0.2em] text-brass">Bedding</p>
+              <h2 className="mt-5 text-[38px] leading-[1.05] md:text-[56px]">Linen, merino and silk.</h2>
+              <p className="mt-6 max-w-md text-grey">
+                Stonewashed French linen that softens with every wash, Australian merino quilts that breathe, and mulberry silk pillowcases.
+                Quilts come in five sizes from Single to Super King.
+              </p>
+              <div className="mt-9 grid grid-cols-3 gap-3">
+                {bedding.map((p) => (
+                  <Link key={p.id} href={`/products/${p.slug}`} className="group block">
+                    <div className="relative aspect-[4/5] overflow-hidden bg-stone">
+                      <Photo src={p.image} alt={p.imageAlt} sizes="15vw" className="transition duration-700 group-hover:scale-[1.04]" />
+                    </div>
+                    <p className="mt-2 text-[13px] leading-snug">{p.name}</p>
+                  </Link>
+                ))}
+              </div>
+              <Link href="/shop/bedding" className="btn btn-dark mt-9">
+                Shop bedding
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* New in */}
       {fresh.length > 0 && (
@@ -181,13 +197,21 @@ export default async function HomePage() {
         <div className="page-x py-16 md:py-24">
           <div className="mb-10 max-w-2xl">
             <h2 className="text-[34px] md:text-[48px]">What it&apos;s made from</h2>
-            <p className="mt-4 text-grey">We choose materials first and design around them. Every product page lists exactly what it&apos;s made of and how to care for it.</p>
+            <p className="mt-4 text-grey">
+              We choose materials first and design around them. Every product page lists exactly what it&apos;s made of and how to care for
+              it.
+            </p>
           </div>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {MATERIALS.map((m) => (
               <Link key={m.name} href={m.href} className="group block">
                 <div className="relative aspect-square overflow-hidden bg-bone">
-                  <Photo src={m.image} alt="" sizes="(min-width: 1024px) 25vw, 50vw" className="transition duration-700 group-hover:scale-[1.04]" />
+                  <Photo
+                    src={m.image}
+                    alt=""
+                    sizes="(min-width: 1024px) 25vw, 50vw"
+                    className="transition duration-700 group-hover:scale-[1.04]"
+                  />
                 </div>
                 <h3 className="wide mt-4 text-[22px] !font-normal">{m.name}</h3>
                 <p className="mt-2 text-[14px] text-grey">{m.body}</p>
@@ -209,8 +233,7 @@ export default async function HomePage() {
               We keep the range small, and everything we sell is used in our own home first.
             </p>
             <p className="mt-6 text-white/75">
-              Orders are packed by us in {store.address.suburb}. If something isn&apos;t right, email us and a real person will
-              sort it out.
+              Orders are packed by us in {store.address.suburb}. If something isn&apos;t right, email us and a real person will sort it out.
             </p>
             <Link href="/about" className="btn btn-white mt-9">
               Our story

@@ -17,7 +17,7 @@ export default async function Dashboard() {
     prisma.order.aggregate({ where: { status: { in: PAID }, paidAt: { gte: since } }, _sum: { totalCents: true, gstCents: true } }),
     prisma.order.count({ where: { status: { in: PAID }, paidAt: { gte: since } } }),
     prisma.order.count({ where: { status: "PAID" } }),
-    prisma.variant.findMany({ where: { stock: { lte: 3 }, product: { active: true } }, include: { product: true }, orderBy: { stock: "asc" }, take: 12 }),
+    prisma.variant.findMany({ where: { stock: { lte: 3 }, archived: false, product: { active: true } }, include: { product: true }, orderBy: { stock: "asc" }, take: 12 }),
     prisma.order.findMany({ where: { status: { not: "PENDING" } }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
   const total = revenue._sum.totalCents ?? 0;

@@ -39,16 +39,6 @@ export async function updateOrder(form: FormData) {
   revalidatePath("/admin", "layout");
 }
 
-export async function updateVariant(form: FormData) {
-  await requireAdmin();
-  const id = String(form.get("id"));
-  const price = Math.round(Number(form.get("price")) * 100);
-  const stock = Math.trunc(Number(form.get("stock")));
-  if (!Number.isFinite(price) || price < 0 || !Number.isFinite(stock)) throw new Error("Invalid price or stock");
-  await prisma.variant.update({ where: { id }, data: { priceCents: price, stock } });
-  revalidatePath("/", "layout");
-}
-
 export async function toggleProduct(form: FormData) {
   await requireAdmin();
   const id = String(form.get("id"));

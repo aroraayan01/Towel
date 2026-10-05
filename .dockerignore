@@ -13,3 +13,4 @@ deploy
 docs
 *.tsbuildinfo
 npm-debug.log*
+uploads
