@@ -5,12 +5,12 @@ import { z } from "zod";
 
 import { Prisma } from "@/app/generated/prisma/client";
 import { checkDiscount } from "@/lib/discounts";
-import { gstIncluded } from "@/lib/money";
 import { markOrderPaid, newAccessToken, nextOrderNumber } from "@/lib/orders";
-import { cleanMonogram, MAX_QTY } from "@/lib/pricing";
+import { cleanMonogram, lineDiscountCents, MAX_QTY, supplierGst, totals, type CartSeller } from "@/lib/pricing";
+import { isVisible } from "@/lib/products";
 import { prisma } from "@/lib/prisma";
 import { rateLimited } from "@/lib/rate-limit";
-import { shippingQuote, STATES, stateForPostcode, type StateCode } from "@/lib/shipping";
+import { STATES, stateForPostcode, type StateCode } from "@/lib/shipping";
 import { checkoutOpen, getStripe } from "@/lib/stripe";
 import { store } from "@/lib/store";
 
@@ -99,12 +99,24 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
   // ── Re-price everything from the database ─────────────────────
   const variants = await prisma.variant.findMany({
     where: { id: { in: d.lines.map((l) => l.variantId) } },
-    include: { product: true },
+    include: { product: { include: { seller: { select: { id: true, name: true, status: true, gstRegistered: true } } } } },
   });
-  const items = [];
+  type Item = {
+    productId: string;
+    variantId: string;
+    name: string;
+    variantLabel: string;
+    unitCents: number;
+    quantity: number;
+    monogram: string | null;
+    monogramCents: number;
+    sellerId: string | null;
+    seller: CartSeller | null;
+  };
+  const items: Item[] = [];
   for (const l of d.lines) {
     const v = variants.find((x) => x.id === l.variantId);
-    if (!v || v.archived || !v.product.active) return { error: "Something in your cart is no longer available. Please remove it and try again." };
+    if (!v || v.archived || !isVisible(v.product)) return { error: "Something in your cart is no longer available. Please remove it and try again." };
     const alreadyInOrder = items.filter((i) => i.variantId === v.id).reduce((n, i) => n + i.quantity, 0);
     if (v.stock < alreadyInOrder + l.quantity) {
       return {
@@ -114,6 +126,7 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
       };
     }
     const monogram = v.product.monogramable ? cleanMonogram(l.monogram) : undefined;
+    const seller = v.product.seller;
     items.push({
       productId: v.productId,
       variantId: v.id,
@@ -123,53 +136,93 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
       quantity: l.quantity,
       monogram: monogram ?? null,
       monogramCents: monogram ? store.commerce.monogramCents : 0,
+      sellerId: seller?.id ?? null,
+      // For the shared pricing maths, which groups lines by who ships them
+      seller: seller ? { id: seller.id, name: seller.name, gst: seller.gstRegistered } : null,
     });
   }
 
   const subtotal = items.reduce((s, i) => s + (i.unitCents + i.monogramCents) * i.quantity, 0);
 
   let discountCode: string | null = null;
-  let discount = 0;
+  let percentOff = 0;
   if (d.discountCode) {
     const c = await checkDiscount(d.discountCode, d.email, subtotal);
     if (!c.ok) return { error: c.message, fields: { discountCode: c.message } };
     discountCode = c.code;
-    discount = Math.round((subtotal * c.percentOff) / 100);
+    percentOff = c.percentOff;
   }
 
-  const giftWrap = d.giftWrap ? store.commerce.giftWrapCents : 0;
-  const ship = shippingQuote(d.method, d.state as StateCode, subtotal - discount);
-  const total = subtotal - discount + giftWrap + ship.cents;
+  // One shipment per sender: delivery, free-delivery threshold and GST are worked out per shipment
+  const t = totals({
+    lines: items.map((i) => ({ ...i, monogram: i.monogram ?? undefined })),
+    state: d.state as StateCode,
+    method: d.method,
+    percentOff,
+    giftWrap: d.giftWrap,
+  });
+  const lineGst = (i: { unitCents: number; monogramCents: number; quantity: number; monogram?: string | null }, registered: boolean) =>
+    supplierGst((i.unitCents + i.monogramCents) * i.quantity - lineDiscountCents({ ...i, monogram: i.monogram ?? undefined }, percentOff), registered);
 
   // ── Create the order (retry if two checkouts race for a number) ──
   let order;
   for (let attempt = 0; ; attempt++) {
     try {
-      order = await prisma.order.create({
-        data: {
-          number: await nextOrderNumber(),
-          accessToken: newAccessToken(),
-          email: d.email,
-          firstName: d.firstName,
-          lastName: d.lastName,
-          phone: d.phone ?? null,
-          address1: d.address1,
-          address2: d.address2 ?? null,
-          suburb: d.suburb,
-          state: d.state,
-          postcode: d.postcode,
-          shippingMethod: `${ship.label} (${ship.eta})`,
-          shippingCents: ship.cents,
-          subtotalCents: subtotal,
-          discountCode,
-          discountCents: discount,
-          giftWrapCents: giftWrap,
-          totalCents: total,
-          gstCents: gstIncluded(total),
-          giftMessage: d.giftMessage ?? null,
-          marketingOptIn: d.marketingOptIn,
-          items: { create: items },
-        },
+      order = await prisma.$transaction(async (tx) => {
+        const created = await tx.order.create({
+          data: {
+            number: await nextOrderNumber(),
+            accessToken: newAccessToken(),
+            email: d.email,
+            firstName: d.firstName,
+            lastName: d.lastName,
+            phone: d.phone ?? null,
+            address1: d.address1,
+            address2: d.address2 ?? null,
+            suburb: d.suburb,
+            state: d.state,
+            postcode: d.postcode,
+            shippingMethod: t.groups.length > 1 ? `${t.shipping.label}, ${t.groups[0].shipping.label.toLowerCase()}` : `${t.shipping.label} (${t.shipping.eta})`,
+            shippingCents: t.shipping.cents,
+            subtotalCents: t.subtotal,
+            discountCode,
+            discountCents: t.discount,
+            giftWrapCents: t.giftWrap,
+            totalCents: t.total,
+            gstCents: t.gst,
+            giftMessage: d.giftMessage ?? null,
+            marketingOptIn: d.marketingOptIn,
+          },
+        });
+        for (const g of t.groups) {
+          const shipment = await tx.shipment.create({
+            data: {
+              orderId: created.id,
+              sellerId: g.sellerId,
+              merchandiseCents: g.subtotal,
+              shippingCents: g.shipping.cents,
+              shippingGstCents: supplierGst(g.shipping.cents, g.gstRegistered),
+              method: `${g.shipping.label} (${g.shipping.eta})`,
+            },
+          });
+          await tx.orderItem.createMany({
+            data: g.lines.map((i) => ({
+              productId: i.productId,
+              variantId: i.variantId,
+              name: i.name,
+              variantLabel: i.variantLabel,
+              unitCents: i.unitCents,
+              quantity: i.quantity,
+              monogramCents: i.monogramCents,
+              sellerId: i.sellerId,
+              monogram: i.monogram ?? null,
+              orderId: created.id,
+              shipmentId: shipment.id,
+              gstCents: lineGst(i, g.gstRegistered),
+            })),
+          });
+        }
+        return created;
       });
       break;
     } catch (e) {
@@ -177,6 +230,8 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
       throw e;
     }
   }
+  const discount = t.discount;
+  const giftWrap = t.giftWrap;
 
   const orderPath = `/order/${order.number}?t=${order.accessToken}`;
   const stripe = getStripe();
@@ -221,8 +276,8 @@ export async function placeOrder(_: CheckoutState, form: FormData): Promise<Chec
         {
           shipping_rate_data: {
             type: "fixed_amount",
-            display_name: `${ship.label} (${ship.eta})`,
-            fixed_amount: { amount: ship.cents, currency: "aud" },
+            display_name: t.groups.length > 1 ? `${t.shipping.label}` : `${t.shipping.label} (${t.shipping.eta})`,
+            fixed_amount: { amount: t.shipping.cents, currency: "aud" },
           },
         },
       ],

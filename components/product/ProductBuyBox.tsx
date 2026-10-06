@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 
 import { useCart } from "@/components/cart/CartProvider";
@@ -18,6 +19,8 @@ export type BuyBoxProduct = {
   tagline: string;
   category: string;
   monogramable: boolean;
+  /** Marketplace seller who sells and ships it; null for xomexo's own products */
+  seller: { id: string; name: string; slug: string; gst: boolean; dispatchDays: number; shipsFrom: string | null } | null;
   rating: number | null;
   reviewCount: number;
   images: { url: string; alt: string; colourName: string | null }[];
@@ -95,6 +98,10 @@ export function ProductBuyBox({
     }
   }
 
+  const dispatch = product.seller
+    ? `Ships${product.seller.shipsFrom ? ` from ${product.seller.shipsFrom}` : ""} within ${product.seller.dispatchDays} business day${product.seller.dispatchDays === 1 ? "" : "s"}.`
+    : "Ships in 1 to 2 business days.";
+
   function addToCart() {
     if (soldOut || (wantsMonogram && !mono)) return;
     add({
@@ -109,6 +116,7 @@ export function ProductBuyBox({
       unitCents: variant.priceCents,
       quantity: Math.min(qty, variant.stock),
       monogram: mono,
+      seller: product.seller ? { id: product.seller.id, name: product.seller.name, gst: product.seller.gst } : null,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -160,6 +168,14 @@ export function ProductBuyBox({
             <Stars rating={product.rating} />
             {product.reviewCount} review{product.reviewCount === 1 ? "" : "s"}
           </a>
+        )}
+        {product.seller && (
+          <p className="mt-3 text-[13px] text-grey">
+            Made and sold by{" "}
+            <Link href={`/makers/${product.seller.slug}`} className="link text-ink">
+              {product.seller.name}
+            </Link>
+          </p>
         )}
         <p className="mt-5 text-[15px] text-[#3b3a38]">{product.tagline}</p>
 
@@ -249,10 +265,8 @@ export function ProductBuyBox({
                 Ask us when it&apos;s back
               </a>
             </>
-          ) : variant.stock <= 3 ? (
-            `Only ${variant.stock} left. Ships in 1 to 2 business days.`
           ) : (
-            "In stock. Ships in 1 to 2 business days."
+            `${variant.stock <= 3 ? `Only ${variant.stock} left.` : "In stock."} ${dispatch}`
           )}
         </p>
 

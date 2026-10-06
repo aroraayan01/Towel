@@ -4,7 +4,8 @@ import { prisma } from "./prisma";
 
 /** Records who did what in /admin. Never throws: a failed log entry shouldn't undo the change. */
 export async function audit(
-  staff: { id: string; name: string } | null,
+  /** A staff member, or { id: null, name } for anyone else (e.g. a seller) */
+  staff: { id: string | null; name: string } | null,
   action: string,
   target: string,
   opts: { href?: string; detail?: string } = {}

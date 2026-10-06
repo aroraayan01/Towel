@@ -176,6 +176,13 @@ done
 [ "${code:-}" = 200 ] || { docker compose logs --tail 60; die "The store did not start (HTTP ${code:-none}). xomexo.com is unchanged."; }
 ok "Store answering on 127.0.0.1:${PORT}"
 
+# Nightly backup at 3:30am (database daily, photos weekly). Safe to rewrite each time.
+cat > /etc/cron.d/xomexo-backup <<CRON
+# xomexo store backup, installed by deploy scripts
+30 3 * * * root bash ${APP_DIR}/deploy/backup.sh >> /var/log/xomexo-backup.log 2>&1
+CRON
+chmod 644 /etc/cron.d/xomexo-backup
+
 # ── 8. Apache ───────────────────────────────────────────────────────────────
 say "Pointing ${DOMAIN} at the store"
 # cPanel rebuilds httpd.conf from templates, so the proxy goes in userdata

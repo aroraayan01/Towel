@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useActionState, useMemo, useState } from "react";
 
 import { CATEGORIES, CATEGORY_ORDER, COLLECTIONS, type Category } from "@/lib/collections";
-import { deleteProduct, saveProduct, type SaveState } from "./actions";
+import type { SaveState } from "@/lib/catalogue";
 
 export type EditorProduct = {
   id?: string;
@@ -81,10 +81,26 @@ const guessHex = (name: string) => SWATCHES.find(([re]) => re.test(name))?.[1] ?
 
 let nextKey = 0;
 const withKey = (v: EditorVariant): Row => ({ ...v, key: `r${nextKey++}` });
-const blankRow = (): Row => withKey({ colourName: "", colourHex: "#c8c4bc", size: "One size", price: "", compareAt: "", stock: "0", sku: "" });
+const blankRow = (): Row =>
+  withKey({ colourName: "", colourHex: "#c8c4bc", size: "One size", price: "", compareAt: "", stock: "0", sku: "" });
 
-export function ProductEditor({ product }: { product: EditorProduct }) {
-  const [state, action, pending] = useActionState<SaveState, FormData>(saveProduct, null);
+/**
+ * The product form, used by admin and by sellers. Sellers don't see the web
+ * address or the shop's own labels (New, Bestseller, Featured).
+ */
+export function ProductEditor({
+  product,
+  save,
+  remove,
+  mode = "admin",
+}: {
+  product: EditorProduct;
+  save: (state: SaveState, form: FormData) => Promise<SaveState>;
+  remove?: (form: FormData) => Promise<void>;
+  mode?: "admin" | "seller";
+}) {
+  const seller = mode === "seller";
+  const [state, action, pending] = useActionState<SaveState, FormData>(save, null);
   const err = state?.fields ?? {};
 
   const [f, setF] = useState(() => ({ ...product, details: product.details.join("\n") }));
@@ -100,12 +116,16 @@ export function ProductEditor({ product }: { product: EditorProduct }) {
   const payload = JSON.stringify({
     id: product.id,
     name: f.name,
-    slug: f.slug,
+    // Sellers never see the web address (it's set for them), so never let it block a save
+    slug: f.slug || "product",
     category: f.category,
     collection: f.collection,
     tagline: f.tagline,
     description: f.description,
-    details: f.details.split("\n").map((l) => l.replace(/^[-•*]\s*/, "").trim()).filter(Boolean),
+    details: f.details
+      .split("\n")
+      .map((l) => l.replace(/^[-•*]\s*/, "").trim())
+      .filter(Boolean),
     // Rows left completely empty are dropped rather than flagged
     specs: specs.map(({ label, value }) => ({ label, value })).filter((sp) => sp.label.trim() || sp.value.trim()),
     material: f.material,
@@ -148,20 +168,24 @@ export function ProductEditor({ product }: { product: EditorProduct }) {
                   required
                 />
               </Field>
-              <Field label="Web address" error={err.slug} hint="Changing this breaks old links to the product.">
-                <div className="flex items-center">
-                  <span className="border-line text-grey border border-r-0 bg-bone px-3 py-[11px] text-[13px] whitespace-nowrap">/products/</span>
-                  <input
-                    className="input"
-                    value={f.slug}
-                    onChange={(e) => {
-                      setSlugTouched(true);
-                      set("slug", slugify(e.target.value) || e.target.value.toLowerCase());
-                    }}
-                    required
-                  />
-                </div>
-              </Field>
+              {!seller && (
+                <Field label="Web address" error={err.slug} hint="Changing this breaks old links to the product.">
+                  <div className="flex items-center">
+                    <span className="border-line text-grey border border-r-0 bg-bone px-3 py-[11px] text-[13px] whitespace-nowrap">
+                      /products/
+                    </span>
+                    <input
+                      className="input"
+                      value={f.slug}
+                      onChange={(e) => {
+                        setSlugTouched(true);
+                        set("slug", slugify(e.target.value) || e.target.value.toLowerCase());
+                      }}
+                      required
+                    />
+                  </div>
+                </Field>
+              )}
               <Field label="Tagline" error={err.tagline} hint="One short line shown under the name, e.g. “600gsm zero-twist cotton”.">
                 <input className="input" value={f.tagline} maxLength={160} onChange={(e) => set("tagline", e.target.value)} />
               </Field>
@@ -169,17 +193,42 @@ export function ProductEditor({ product }: { product: EditorProduct }) {
 
             <Card title="Description">
               <Field label="Description" error={err.description}>
-                <textarea className="input min-h-36" value={f.description} maxLength={5000} onChange={(e) => set("description", e.target.value)} />
+                <textarea
+                  className="input min-h-36"
+                  value={f.description}
+                  maxLength={5000}
+                  onChange={(e) => set("description", e.target.value)}
+                />
               </Field>
-              <Field label="Details" error={err.details} hint="One per line. Shown as a bulleted list, e.g. sizes, weight, where it's made.">
-                <textarea className="input min-h-32 font-mono text-[13px]" value={f.details} onChange={(e) => set("details", e.target.value)} />
+              <Field
+                label="Details"
+                error={err.details}
+                hint="One per line. Shown as a bulleted list, e.g. sizes, weight, where it's made."
+              >
+                <textarea
+                  className="input min-h-32 font-mono text-[13px]"
+                  value={f.details}
+                  onChange={(e) => set("details", e.target.value)}
+                />
               </Field>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Material" error={err.material}>
-                  <input className="input" value={f.material} maxLength={200} placeholder="e.g. 100% Australian merino wool" onChange={(e) => set("material", e.target.value)} />
+                  <input
+                    className="input"
+                    value={f.material}
+                    maxLength={200}
+                    placeholder="e.g. 100% Australian merino wool"
+                    onChange={(e) => set("material", e.target.value)}
+                  />
                 </Field>
                 <Field label="Care" error={err.care}>
-                  <input className="input" value={f.care} maxLength={1000} placeholder="e.g. Machine wash cold, line dry" onChange={(e) => set("care", e.target.value)} />
+                  <input
+                    className="input"
+                    value={f.care}
+                    maxLength={1000}
+                    placeholder="e.g. Machine wash cold, line dry"
+                    onChange={(e) => set("care", e.target.value)}
+                  />
                 </Field>
               </div>
             </Card>
@@ -191,7 +240,14 @@ export function ProductEditor({ product }: { product: EditorProduct }) {
 
           <div className="space-y-6">
             <Card title="Visibility">
-              <Check label="Show in shop" hint="Turn off to keep it hidden while you finish it." checked={f.active} onChange={(v) => set("active", v)} />
+              <Check
+                label="Show in shop"
+                hint={
+                  seller ? "Once approved. Turn off to hide it, e.g. while you're away." : "Turn off to keep it hidden while you finish it."
+                }
+                checked={f.active}
+                onChange={(v) => set("active", v)}
+              />
             </Card>
             <Card title="Organisation">
               <Field label="Category" error={err.category}>
@@ -220,13 +276,36 @@ export function ProductEditor({ product }: { product: EditorProduct }) {
                 </select>
               </Field>
             </Card>
-            <Card title="Labels">
-              <Check label="New" hint="Shows a “New” label and puts it in New arrivals." checked={f.isNew} onChange={(v) => set("isNew", v)} />
-              <Check label="Bestseller" hint="Shows on the home page under Bestsellers." checked={f.bestseller} onChange={(v) => set("bestseller", v)} />
-              <Check label="Featured" hint="Listed first in its collection." checked={f.featured} onChange={(v) => set("featured", v)} />
+            <Card title={seller ? "Personalisation" : "Labels"}>
+              {!seller && (
+                <>
+                  <Check
+                    label="New"
+                    hint="Shows a “New” label and puts it in New arrivals."
+                    checked={f.isNew}
+                    onChange={(v) => set("isNew", v)}
+                  />
+                  <Check
+                    label="Bestseller"
+                    hint="Shows on the home page under Bestsellers."
+                    checked={f.bestseller}
+                    onChange={(v) => set("bestseller", v)}
+                  />
+                  <Check
+                    label="Featured"
+                    hint="Listed first in its collection."
+                    checked={f.featured}
+                    onChange={(v) => set("featured", v)}
+                  />
+                </>
+              )}
               <Check
                 label="Offer personalisation"
-                hint={f.category === "leather" ? "Customers can add initials, heat-debossed (+$12)." : "Customers can add a monogram, embroidered (+$12)."}
+                hint={
+                  f.category === "leather"
+                    ? "Customers can add initials, heat-debossed (+$12)."
+                    : "Customers can add a monogram, embroidered (+$12)."
+                }
                 checked={f.monogramable}
                 onChange={(v) => set("monogramable", v)}
               />
@@ -239,12 +318,19 @@ export function ProductEditor({ product }: { product: EditorProduct }) {
       <div className="border-line fixed inset-x-0 bottom-0 z-20 border-t bg-white/95 backdrop-blur lg:left-60">
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
           <p className={`text-sm ${state?.error ? "text-sale" : "text-grey"}`} role={state?.error ? "alert" : undefined}>
-            {state?.error ?? (product.id ? "Changes go live as soon as you save." : "Save first, then add photos.")}
+            {state?.error ??
+              (seller
+                ? product.id
+                  ? "Price, stock and option changes go live straight away. Description changes are checked by us first."
+                  : "Save first, then add photos. We check new products before they go live."
+                : product.id
+                  ? "Changes go live as soon as you save."
+                  : "Save first, then add photos.")}
           </p>
           <div className="flex items-center gap-3">
-            {product.id && (
+            {product.id && remove && (
               <form
-                action={deleteProduct}
+                action={remove}
                 onSubmit={(e) => {
                   if (!confirm(`Delete "${product.name}" and its photos? This can't be undone.`)) e.preventDefault();
                 }}
@@ -254,7 +340,7 @@ export function ProductEditor({ product }: { product: EditorProduct }) {
               </form>
             )}
             <button form="product-form" className="btn btn-dark h-11 px-6" disabled={pending}>
-              {pending ? "Saving…" : product.id ? "Save changes" : "Create product"}
+              {pending ? "Saving…" : product.id ? "Save changes" : seller ? "Save product" : "Create product"}
             </button>
           </div>
         </div>
@@ -279,11 +365,22 @@ function Options({
   const [bulk, setBulk] = useState({ colours: "", sizes: "", price: "", stock: "" });
   const [bulkOpen, setBulkOpen] = useState(false);
 
-  const list = (s: string) => [...new Set(s.split(",").map((x) => x.trim()).filter(Boolean))];
+  const list = (s: string) => [
+    ...new Set(
+      s
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
+    ),
+  ];
   const bulkColours = list(bulk.colours);
   const bulkSizes = list(bulk.sizes);
-  const combos = (bulkColours.length ? bulkColours : ["One colour"]).flatMap((c) => (bulkSizes.length ? bulkSizes : ["One size"]).map((s) => [c, s] as const));
-  const fresh = combos.filter(([c, s]) => !rows.some((r) => r.colourName.toLowerCase() === c.toLowerCase() && r.size.toLowerCase() === s.toLowerCase()));
+  const combos = (bulkColours.length ? bulkColours : ["One colour"]).flatMap((c) =>
+    (bulkSizes.length ? bulkSizes : ["One size"]).map((s) => [c, s] as const),
+  );
+  const fresh = combos.filter(
+    ([c, s]) => !rows.some((r) => r.colourName.toLowerCase() === c.toLowerCase() && r.size.toLowerCase() === s.toLowerCase()),
+  );
 
   function addBulk() {
     setRows((rs) => {
@@ -292,7 +389,9 @@ function Options({
       const hexFor = (c: string) => base.find((r) => r.colourName.toLowerCase() === c.toLowerCase())?.colourHex ?? guessHex(c);
       return [
         ...base,
-        ...fresh.map(([c, s]) => withKey({ colourName: c, colourHex: hexFor(c), size: s, price: bulk.price, compareAt: "", stock: bulk.stock || "0", sku: "" })),
+        ...fresh.map(([c, s]) =>
+          withKey({ colourName: c, colourHex: hexFor(c), size: s, price: bulk.price, compareAt: "", stock: bulk.stock || "0", sku: "" }),
+        ),
       ];
     });
     setBulk({ colours: "", sizes: "", price: "", stock: "" });
@@ -302,8 +401,8 @@ function Options({
   return (
     <Card title="Options, prices and stock">
       <p className="text-grey -mt-2 text-[13px]">
-        One row per colour and size combination customers can buy. Prices include GST. If there&apos;s only one colour or size, enter it once
-        (e.g. &quot;Natural&quot;, &quot;One size&quot;) and customers won&apos;t be asked to choose.
+        One row per colour and size combination customers can buy. Prices include GST. If there&apos;s only one colour or size, enter it
+        once (e.g. &quot;Natural&quot;, &quot;One size&quot;) and customers won&apos;t be asked to choose.
       </p>
       {error && <p className="text-sale text-sm">{error}</p>}
 
@@ -348,16 +447,52 @@ function Options({
                   </div>
                 </td>
                 <td className="px-2 py-2">
-                  <input className="input px-2 py-1.5" value={r.size} maxLength={40} onChange={(e) => setRow(r.key, { size: e.target.value })} aria-label="Size" />
+                  <input
+                    className="input px-2 py-1.5"
+                    value={r.size}
+                    maxLength={40}
+                    onChange={(e) => setRow(r.key, { size: e.target.value })}
+                    aria-label="Size"
+                  />
                 </td>
                 <td className="w-28 px-2 py-2">
-                  <input className="input px-2 py-1.5" type="number" min="0" step="0.01" inputMode="decimal" value={r.price} onChange={(e) => setRow(r.key, { price: e.target.value })} aria-label="Price" required />
+                  <input
+                    className="input px-2 py-1.5"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={r.price}
+                    onChange={(e) => setRow(r.key, { price: e.target.value })}
+                    aria-label="Price"
+                    required
+                  />
                 </td>
                 <td className="w-28 px-2 py-2">
-                  <input className="input px-2 py-1.5" type="number" min="0" step="0.01" inputMode="decimal" value={r.compareAt} placeholder="—" onChange={(e) => setRow(r.key, { compareAt: e.target.value })} aria-label="Was price (optional)" title="Optional. Shown crossed out when it's higher than the price." />
+                  <input
+                    className="input px-2 py-1.5"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={r.compareAt}
+                    placeholder="—"
+                    onChange={(e) => setRow(r.key, { compareAt: e.target.value })}
+                    aria-label="Was price (optional)"
+                    title="Optional. Shown crossed out when it's higher than the price."
+                  />
                 </td>
                 <td className="w-24 px-2 py-2">
-                  <input className="input px-2 py-1.5" type="number" min="0" step="1" inputMode="numeric" value={r.stock} onChange={(e) => setRow(r.key, { stock: e.target.value })} aria-label="Stock" />
+                  <input
+                    className="input px-2 py-1.5"
+                    type="number"
+                    min="0"
+                    step="1"
+                    inputMode="numeric"
+                    value={r.stock}
+                    onChange={(e) => setRow(r.key, { stock: e.target.value })}
+                    aria-label="Stock"
+                  />
                 </td>
                 <td className="w-44 px-2 py-2">
                   <input
@@ -374,7 +509,13 @@ function Options({
                   <button
                     type="button"
                     onClick={() => {
-                      if (r.ordered && !confirm("This option has been ordered before. It'll be kept at 0 stock for the order history rather than deleted. Continue?")) return;
+                      if (
+                        r.ordered &&
+                        !confirm(
+                          "This option has been ordered before. It'll be kept at 0 stock for the order history rather than deleted. Continue?",
+                        )
+                      )
+                        return;
                       setRows((rs) => rs.filter((x) => x.key !== r.key));
                     }}
                     disabled={rows.length === 1}
@@ -416,16 +557,37 @@ function Options({
               <input className="input" value={bulk.sizes} onChange={(e) => setBulk({ ...bulk, sizes: e.target.value })} />
             </Field>
             <Field label="Price $ for each" hint="You can change individual prices after.">
-              <input className="input" type="number" min="0" step="0.01" value={bulk.price} onChange={(e) => setBulk({ ...bulk, price: e.target.value })} />
+              <input
+                className="input"
+                type="number"
+                min="0"
+                step="0.01"
+                value={bulk.price}
+                onChange={(e) => setBulk({ ...bulk, price: e.target.value })}
+              />
             </Field>
             <Field label="Stock for each">
-              <input className="input" type="number" min="0" step="1" value={bulk.stock} onChange={(e) => setBulk({ ...bulk, stock: e.target.value })} />
+              <input
+                className="input"
+                type="number"
+                min="0"
+                step="1"
+                value={bulk.stock}
+                onChange={(e) => setBulk({ ...bulk, stock: e.target.value })}
+              />
             </Field>
           </div>
-          <button type="button" className="btn btn-dark h-9 px-4 text-[12px]" onClick={addBulk} disabled={!fresh.length || (!bulkColours.length && !bulkSizes.length)}>
+          <button
+            type="button"
+            className="btn btn-dark h-9 px-4 text-[12px]"
+            onClick={addBulk}
+            disabled={!fresh.length || (!bulkColours.length && !bulkSizes.length)}
+          >
             Add {fresh.length} option{fresh.length === 1 ? "" : "s"}
           </button>
-          {combos.length > fresh.length && <p className="text-grey text-xs">{combos.length - fresh.length} already in the list, skipped.</p>}
+          {combos.length > fresh.length && (
+            <p className="text-grey text-xs">{combos.length - fresh.length} already in the list, skipped.</p>
+          )}
         </div>
       )}
     </Card>
@@ -472,15 +634,39 @@ function Specs({
                 onChange={(e) => set(sp.key, { label: e.target.value })}
                 aria-label="Spec label"
               />
-              <input className="input px-2 py-1.5" value={sp.value} placeholder="Value" maxLength={300} onChange={(e) => set(sp.key, { value: e.target.value })} aria-label="Spec value" />
+              <input
+                className="input px-2 py-1.5"
+                value={sp.value}
+                placeholder="Value"
+                maxLength={300}
+                onChange={(e) => set(sp.key, { value: e.target.value })}
+                aria-label="Spec value"
+              />
               <span className="flex">
-                <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="text-grey hover:text-ink grid size-8 place-items-center disabled:opacity-25" aria-label="Move up">
+                <button
+                  type="button"
+                  onClick={() => move(i, -1)}
+                  disabled={i === 0}
+                  className="text-grey hover:text-ink grid size-8 place-items-center disabled:opacity-25"
+                  aria-label="Move up"
+                >
                   <ArrowUp size={15} />
                 </button>
-                <button type="button" onClick={() => move(i, 1)} disabled={i === specs.length - 1} className="text-grey hover:text-ink grid size-8 place-items-center disabled:opacity-25" aria-label="Move down">
+                <button
+                  type="button"
+                  onClick={() => move(i, 1)}
+                  disabled={i === specs.length - 1}
+                  className="text-grey hover:text-ink grid size-8 place-items-center disabled:opacity-25"
+                  aria-label="Move down"
+                >
                   <ArrowDown size={15} />
                 </button>
-                <button type="button" onClick={() => setSpecs((ss) => ss.filter((x) => x.key !== sp.key))} className="text-grey hover:text-sale grid size-8 place-items-center" aria-label="Remove this spec">
+                <button
+                  type="button"
+                  onClick={() => setSpecs((ss) => ss.filter((x) => x.key !== sp.key))}
+                  className="text-grey hover:text-sale grid size-8 place-items-center"
+                  aria-label="Remove this spec"
+                >
                   <Trash2 size={15} />
                 </button>
               </span>
@@ -532,7 +718,11 @@ function Field({ label, hint, error, children }: { label: string; hint?: string;
     <label className="block">
       <span className="field-label">{label}</span>
       {children}
-      {error ? <span className="text-sale mt-1 block text-xs">{error}</span> : hint ? <span className="text-grey mt-1 block text-xs">{hint}</span> : null}
+      {error ? (
+        <span className="text-sale mt-1 block text-xs">{error}</span>
+      ) : hint ? (
+        <span className="text-grey mt-1 block text-xs">{hint}</span>
+      ) : null}
     </label>
   );
 }

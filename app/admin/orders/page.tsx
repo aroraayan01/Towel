@@ -19,7 +19,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
         OR: [{ number: { contains: query.toUpperCase() } }, { email: { contains: query.toLowerCase() } }, { lastName: { contains: query } }],
       }),
     },
-    include: { _count: { select: { items: true } } },
+    include: { _count: { select: { items: true } }, shipments: { select: { status: true, seller: { select: { name: true } } } } },
     orderBy: { createdAt: "desc" },
     take: 200,
   });
@@ -54,7 +54,17 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
                 <td className="whitespace-nowrap">{o.createdAt.toLocaleDateString("en-AU")}</td>
                 <td>{o.firstName} {o.lastName}<span className="text-grey block text-xs">{o.email}</span></td>
                 <td>{o.suburb} {o.state}</td>
-                <td><StatusBadge status={o.status} /></td>
+                <td>
+                  <StatusBadge status={o.status} />
+                  {o.shipments.length > 1 && (
+                    <span className="text-grey mt-1 block text-xs">
+                      {o.shipments.filter((x) => x.status === "SHIPPED" || x.status === "DELIVERED").length} of {o.shipments.length} shipments sent
+                    </span>
+                  )}
+                  {o.shipments.some((x) => x.seller) && (
+                    <span className="text-grey block text-xs">via {[...new Set(o.shipments.map((x) => x.seller?.name).filter(Boolean))].join(", ")}</span>
+                  )}
+                </td>
                 <td className="text-right tabular-nums">{formatMoney(o.totalCents)}<span className="text-grey block text-xs">{o._count.items} line{o._count.items === 1 ? "" : "s"}</span></td>
               </tr>
             ))}

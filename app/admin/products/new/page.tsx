@@ -2,7 +2,8 @@ import Link from "next/link";
 
 import { requireStaff } from "@/lib/admin-auth";
 import { AdminTitle } from "../../ui";
-import { ProductEditor } from "../ProductEditor";
+import { ProductEditor } from "@/components/catalogue/ProductEditor";
+import { saveProduct } from "../actions";
 
 export default async function NewProductPage() {
   await requireStaff("products");
@@ -13,6 +14,7 @@ export default async function NewProductPage() {
       </Link>
       <AdminTitle title="New product" sub="Fill in the details and options, then save. You can add photos straight after." />
       <ProductEditor
+        save={saveProduct}
         product={{
           name: "",
           slug: "",

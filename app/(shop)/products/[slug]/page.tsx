@@ -43,7 +43,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
     name: p.name,
     description: p.description,
     material: p.material,
-    brand: { "@type": "Brand", name: store.name },
+    brand: { "@type": "Brand", name: p.seller?.name ?? store.name },
     url: `${store.url}/products/${p.slug}`,
     // Uploaded photos are stored as site-relative paths; search engines need full URLs
     image: p.images.map((i) => (i.url.startsWith("/") ? `${store.url}${i.url}` : i.url)),
@@ -93,6 +93,16 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
             tagline: p.tagline,
             category: p.category,
             monogramable: p.monogramable,
+            seller: p.seller
+              ? {
+                  id: p.seller.id,
+                  name: p.seller.name,
+                  slug: p.seller.slug,
+                  gst: p.seller.gstRegistered,
+                  dispatchDays: p.seller.dispatchDays,
+                  shipsFrom: p.seller.shipFromSuburb && p.seller.shipFromState ? `${p.seller.shipFromSuburb} ${p.seller.shipFromState}` : null,
+                }
+              : null,
             rating,
             reviewCount: p.reviews.length,
             images: p.images.map((i) => ({ url: i.url, alt: i.alt, colourName: i.colourName })),

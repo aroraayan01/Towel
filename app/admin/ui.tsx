@@ -4,6 +4,7 @@ const COLOURS: Record<OrderStatus, string> = {
   PENDING: "bg-bone text-grey",
   PAID: "bg-[#f6eed8] text-[#7a5a00]",
   PACKED: "bg-[#e3ecf5] text-[#2d5277]",
+  PARTLY_SHIPPED: "bg-[#e3ecf5] text-ink",
   SHIPPED: "bg-bone text-ink",
   DELIVERED: "bg-ink text-white",
   CANCELLED: "bg-stone text-grey",

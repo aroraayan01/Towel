@@ -2,25 +2,40 @@ import Link from "next/link";
 
 import { requireStaff } from "@/lib/admin-auth";
 import { formatMoney } from "@/lib/money";
+import { approvalQueue, balances } from "@/lib/marketplace";
 import { prisma } from "@/lib/prisma";
+import { can } from "@/lib/staff";
 import { checkoutOpen, paymentsLive } from "@/lib/stripe";
 import { AdminTitle, card, StatusBadge, table } from "./ui";
 
-const PAID = ["PAID", "PACKED", "SHIPPED", "DELIVERED"];
+const PAID = ["PAID", "PACKED", "PARTLY_SHIPPED", "SHIPPED", "DELIVERED"];
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 86400000);
 
 export default async function Dashboard() {
-  await requireStaff("dashboard");
+  const staff = await requireStaff("dashboard");
   const since = daysAgo(30);
   const [revenue, orderCount, toPack, lowStock, recent] = await Promise.all([
     prisma.order.aggregate({ where: { status: { in: PAID }, paidAt: { gte: since } }, _sum: { totalCents: true, gstCents: true } }),
     prisma.order.count({ where: { status: { in: PAID }, paidAt: { gte: since } } }),
-    prisma.order.count({ where: { status: "PAID" } }),
-    prisma.variant.findMany({ where: { stock: { lte: 3 }, archived: false, product: { active: true } }, include: { product: true }, orderBy: { stock: "asc" }, take: 12 }),
+    // Our own parcels still to send; sellers ship theirs
+    prisma.shipment.count({ where: { sellerId: null, status: { in: ["TO_SHIP", "PACKED"] } } }),
+    prisma.variant.findMany({ where: { stock: { lte: 3 }, archived: false, product: { active: true, sellerId: null } }, include: { product: true }, orderBy: { stock: "asc" }, take: 12 }),
     prisma.order.findMany({ where: { status: { not: "PENDING" } }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
   const total = revenue._sum.totalCents ?? 0;
+
+  // Marketplace, only shown once there are sellers
+  const sellerCount = await prisma.seller.count();
+  const market = sellerCount
+    ? await Promise.all([
+        prisma.seller.count({ where: { status: "pending" } }),
+        prisma.product.count({ where: approvalQueue }),
+        prisma.ledgerEntry.aggregate({ where: { type: { in: ["COMMISSION", "COMMISSION_REFUND"] }, createdAt: { gte: since } }, _sum: { amountCents: true } }),
+        can(staff.role, "payouts") ? balances() : Promise.resolve(null),
+        prisma.shipment.count({ where: { sellerId: { not: null }, status: { in: ["TO_SHIP", "PACKED"] }, order: { paidAt: { lt: daysAgo(7) } } } }),
+      ])
+    : null;
 
   return (
     <>
@@ -42,9 +57,25 @@ export default async function Dashboard() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Revenue (30 days)" value={formatMoney(total)} sub={`incl. ${formatMoney(revenue._sum.gstCents ?? 0)} GST`} />
         <Stat label="Orders (30 days)" value={String(orderCount)} sub={orderCount ? `avg ${formatMoney(Math.round(total / orderCount))}` : "—"} />
-        <Stat label="Waiting to pack" value={String(toPack)} sub="Paid, not yet packed" href="/admin/orders?status=PAID" highlight={toPack > 0} />
+        <Stat label="Waiting to pack" value={String(toPack)} sub="Our parcels not yet sent" href="/admin/orders" highlight={toPack > 0} />
         <Stat label="Low or no stock" value={String(lowStock.length)} sub="Variants with ≤ 3 left" href="/admin/products" highlight={lowStock.length > 0} />
       </div>
+
+      {market && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Stat label="Seller applications" value={String(market[0])} sub="Waiting for a decision" href="/admin/sellers?status=pending" highlight={market[0] > 0} />
+          <Stat label="Listings to approve" value={String(market[1])} sub="New products and changes" href="/admin/approvals" highlight={market[1] > 0} />
+          <Stat label="Commission (30 days)" value={formatMoney(-(market[2]._sum.amountCents ?? 0))} sub={market[4] ? `${market[4]} seller order${market[4] === 1 ? "" : "s"} unshipped after 7 days` : "From marketplace sales"} />
+          {market[3] && (
+            <Stat
+              label="Owed to sellers"
+              value={formatMoney([...market[3].values()].reduce((n, m) => n + Math.max(0, m.balance), 0))}
+              sub={`${formatMoney([...market[3].values()].reduce((n, m) => n + m.available, 0))} payable now`}
+              href="/admin/payouts"
+            />
+          )}
+        </div>
+      )}
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
         <section className={card}>

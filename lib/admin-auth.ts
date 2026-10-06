@@ -1,11 +1,11 @@
 import "server-only";
 
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { prisma } from "./prisma";
+import { safeEqual, sign } from "./session-crypto";
 import { can, homeFor, type Permission } from "./staff";
 
 /**
@@ -18,20 +18,6 @@ import { can, homeFor, type Permission } from "./staff";
  */
 const COOKIE = "ww_admin";
 const MAX_AGE = 60 * 60 * 12; // 12 hours
-
-function secret() {
-  const s = process.env.ADMIN_SECRET;
-  if (!s || s.length < 32) throw new Error("ADMIN_SECRET must be set to a random string of 32+ characters");
-  return s;
-}
-
-const sign = (value: string) => createHmac("sha256", secret()).update(value).digest("base64url");
-
-function safeEqual(a: string, b: string) {
-  const x = Buffer.from(a);
-  const y = Buffer.from(b);
-  return x.length === y.length && timingSafeEqual(x, y);
-}
 
 /**
  * The server's ADMIN_PASSWORD. Only used once: to prove you run the server

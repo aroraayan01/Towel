@@ -16,6 +16,9 @@ const AREAS: Record<string, string> = {
   auth: "Logins",
   account: "Account",
   subscribers: "Subscribers",
+  seller: "Sellers",
+  approval: "Approvals",
+  payout: "Payouts",
 };
 
 const LABEL: Record<string, string> = {
@@ -38,6 +41,25 @@ const LABEL: Record<string, string> = {
   "review.approve": "Approved review",
   "review.delete": "Deleted review",
   "subscribers.export": "Exported subscriber list",
+  "seller.approve": "Approved seller",
+  "seller.reject": "Declined seller application",
+  "seller.suspend": "Suspended seller",
+  "seller.reactivate": "Reactivated seller",
+  "seller.commission": "Changed commission",
+  "seller.reset": "Reset seller password",
+  "seller.profile": "Seller profile",
+  "seller.bank": "Seller bank details",
+  "seller.product.submit": "Submitted a product",
+  "seller.product.change": "Changed a product",
+  "seller.product.delete": "Deleted a product",
+  "seller.shipment": "Updated a shipment",
+  "approval.product": "Approved new product",
+  "approval.changes": "Approved product changes",
+  "approval.reject": "Sent back a listing",
+  "payout.record": "Recorded payment to seller",
+  "payout.adjust": "Adjusted seller balance",
+  "payout.bank": "Viewed seller bank details",
+  "payout.export": "Downloaded payment list",
 };
 
 export default async function ActivityPage({ searchParams }: PageProps<"/admin/activity">) {

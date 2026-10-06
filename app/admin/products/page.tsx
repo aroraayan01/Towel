@@ -16,9 +16,12 @@ export default async function AdminProductsPage({ searchParams }: PageProps<"/ad
   const sp = await searchParams;
   const category = typeof sp.category === "string" && isCategory(sp.category) ? sp.category : undefined;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
+  // "house" = our own products; otherwise a seller id
+  const seller = typeof sp.seller === "string" ? sp.seller : undefined;
 
   const where: Prisma.ProductWhereInput = {
     ...(category ? { category } : {}),
+    ...(seller ? { sellerId: seller === "house" ? null : seller } : {}),
     ...(q ? { OR: [{ name: { contains: q } }, { slug: { contains: q } }, { variants: { some: { sku: { contains: q.toUpperCase() } } } }] } : {}),
   };
   const [products, sampleCount] = await Promise.all([
@@ -27,14 +30,19 @@ export default async function AdminProductsPage({ searchParams }: PageProps<"/ad
       include: {
         variants: { where: { archived: false }, select: { priceCents: true, stock: true } },
         images: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }], take: 1, select: { url: true } },
+        seller: { select: { id: true, name: true } },
       },
       orderBy: [{ fromSeed: "asc" }, { updatedAt: "desc" }],
     }),
     // Only samples customers can still see; ordered ones that were hidden don't count
     prisma.product.count({ where: { fromSeed: true, active: true } }),
   ]);
+  const sellers = await prisma.seller.findMany({ where: { products: { some: {} } }, select: { id: true, name: true }, orderBy: { name: "asc" } });
 
-  const tab = (c?: string) => `/admin/products${c ? `?category=${c}` : ""}`;
+  const tab = (c?: string) => {
+    const qs = new URLSearchParams(Object.entries({ category: c, seller }).filter(([, v]) => v) as [string, string][]);
+    return `/admin/products${qs.size ? `?${qs}` : ""}`;
+  };
 
   return (
     <>
@@ -72,7 +80,19 @@ export default async function AdminProductsPage({ searchParams }: PageProps<"/ad
         </nav>
         <form className="flex gap-2">
           {category && <input type="hidden" name="category" value={category} />}
+          {sellers.length > 0 && (
+            <select name="seller" defaultValue={seller ?? ""} className="input w-auto py-1.5 text-sm" aria-label="Seller">
+              <option value="">All sellers</option>
+              <option value="house">Our own products</option>
+              {sellers.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name}
+                </option>
+              ))}
+            </select>
+          )}
           <input name="q" defaultValue={q} placeholder="Search name or SKU" className="input w-56 py-1.5 text-sm" aria-label="Search products" />
+          <button className="btn btn-line h-9 px-3 text-[12px]">Filter</button>
         </form>
       </div>
 
@@ -115,6 +135,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps<"/ad
                         {p.name}
                       </Link>
                       <span className="text-grey block text-xs">
+                        {p.seller && <>by {p.seller.name} · </>}
                         {collectionBySlug(p.collection)?.name ?? p.collection} · {p.variants.length} option{p.variants.length === 1 ? "" : "s"}
                         {p.images.length === 0 && " · no photos"}
                       </span>
@@ -126,7 +147,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps<"/ad
                     </td>
                     <td className="whitespace-nowrap">
                       <span className={`inline-block px-2 py-0.5 text-xs font-semibold ${p.active ? "bg-forest/10 text-forest" : "bg-stone text-grey"}`}>
-                        {p.active ? "Live" : "Hidden"}
+                        {p.reviewStatus === "pending" ? "In review" : p.reviewStatus === "rejected" ? "Sent back" : p.active ? "Live" : "Hidden"}
                       </span>
                       {p.fromSeed && <span className="text-grey ml-1.5 text-xs">Sample</span>}
                     </td>

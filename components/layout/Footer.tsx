@@ -25,6 +25,8 @@ const COLUMNS = [
     title: "xomexo",
     links: [
       ["About", "/about"],
+      ["Our makers", "/makers"],
+      ["Sell with us", "/sell"],
       ["Instagram", `https://instagram.com/${store.instagram}`],
       ["Privacy", "/privacy"],
       ["Terms", "/terms"],

@@ -48,4 +48,11 @@ if [ "${code:-}" != 200 ]; then
   die "Store is not answering (HTTP ${code:-none}). To go back: git -C ${APP_DIR} checkout ${BEFORE} && bash $0 --force"
 fi
 docker image prune -f >/dev/null 2>&1 || true
+
+# Nightly backup at 3:30am (database daily, photos weekly). Safe to rewrite each time.
+cat > /etc/cron.d/xomexo-backup <<CRON
+# xomexo store backup, installed by deploy scripts
+30 3 * * * root bash ${APP_DIR}/deploy/backup.sh >> /var/log/xomexo-backup.log 2>&1
+CRON
+chmod 644 /etc/cron.d/xomexo-backup
 printf '\n\033[32mUpdated %s -> %s, store is up.\033[0m\n' "$BEFORE" "$AFTER"

@@ -50,6 +50,35 @@ The 38 starter products (`prisma/seed.ts`) use free-licence **Unsplash stock pho
 
 The seed never overwrites or deletes products made or edited in admin.
 
+## Marketplace: other makers selling through the shop
+
+Independent businesses can sell their own products alongside yours. They ship their own orders; the shop takes the payment and pays them out, minus commission.
+
+**How a seller joins**
+1. They apply on **/sell** (business name, ABN checked against the ATO's checksum, GST status, what they make, where they ship from) and accept the seller terms at **/sell/terms**.
+2. You review the application in **Admin » Sellers**, set their commission (default 15%, in `lib/store.ts`) and approve. They're emailed a login to the seller portal, and the login is also shown on screen once in case email isn't set up.
+3. In the **seller portal (/seller)** they choose a password, add their bank details (encrypted, confirmed with their password, and both of you are emailed whenever they change), write their shop page introduction, and add products with the same editor you use.
+
+**Listings**
+- New products wait in **Admin » Approvals** until you approve them. You can send them back with a note.
+- Once a product is live, sellers can change prices, stock and options straight away. Changes to the name, description, specs and so on wait for approval, and the shop keeps showing the approved version until then. Approvals shows the before and after.
+- New photos from sellers stay hidden until approved.
+- Each maker gets a public page at **/makers/<name>**, and their products show "Made and sold by…" with their dispatch time.
+
+**Orders and shipping**
+- A cart with items from several sellers becomes one order with **one shipment per sender**. Delivery is charged per shipment at the shop's normal rates, and the free-delivery threshold applies to each shipment. Gift wrap is only offered when the shop ships everything; gift notes go in every parcel.
+- Each seller is emailed their part only (items, address, gift note; not the customer's email). They pack it, add the carrier and tracking number, and the customer gets a tracking email for that parcel. The order shows "Partly shipped" until every parcel has gone.
+- The order confirmation is a tax invoice grouped by supplier: each seller's part shows their ABN, and GST only if they're registered.
+
+**Money**
+- When an order is paid, each seller is credited the full price of their goods (discount codes are funded by the shop) plus the delivery charged on their parcel, minus commission on the goods.
+- That money becomes payable **14 days after they mark the parcel shipped** (`payoutHoldDays` in `lib/store.ts`), to cover change-of-mind returns.
+- **Admin » Payouts** (owners only) lists what each seller is owed. Pay them by bank transfer (the CSV download has names, BSBs, account numbers and amounts), then record each payment: the seller is emailed a remittance and it appears on their statement. You can't record more than is payable.
+- Cancelling or refunding an order reverses the seller's earnings on it automatically, and parcels that hadn't been sent go back into stock. **Adjustments** (e.g. a partial refund) can be added on the seller's page.
+- Suspending a seller hides all their products and logs them out at once; open orders still need shipping.
+
+**Who can do what:** Owners and managers handle sellers and approvals. Only owners see bank details and record payouts.
+
 ## Staff accounts
 
 Everyone who uses admin has their own login, so the activity log shows who did what.
@@ -123,7 +152,8 @@ Everyone who uses admin has their own login, so the activity log shows who did w
 - [ ] **Stripe**: add `STRIPE_SECRET_KEY`; turn on Afterpay, Apple Pay and Google Pay in Dashboard → Settings → Payment methods; add a webhook to `https://<domain>/api/stripe/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` and `checkout.session.expired`, then set `STRIPE_WEBHOOK_SECRET`
 - [ ] **Email**: SMTP credentials and `MAIL_FROM` on your own domain (set up SPF and DKIM)
 - [ ] **Admin**: create the owner account at /admin (needs `ADMIN_PASSWORD` once), then add staff in Admin » Staff. Keep `ADMIN_SECRET` random and 32+ characters
-- [ ] **Legal**: have the Privacy policy and Terms reviewed (they are templates, not legal advice)
+- [ ] **Legal**: have the Privacy policy, Terms and the seller terms (/sell/terms) reviewed. They are templates, not legal advice. Selling other businesses' goods also raises GST questions (who the supplier is, GST on commission) worth running past your accountant
+- [ ] **Marketplace**: check the commission rate, hold period and payout schedule in `lib/store.ts` before approving the first seller
 - [ ] **`NEXT_PUBLIC_SITE_URL`** set to the live https URL
 - [ ] Place a real $1 order end to end, then refund it in Stripe
 
@@ -146,11 +176,16 @@ Commands (run as root in WHM » Terminal):
 | Update after a push | `bash /home/grapme/xomexo-store/deploy/update.sh` |
 | Put the old site back on xomexo.com | `bash /home/grapme/xomexo-store/deploy/rollback.sh` |
 | Logs | `cd /home/grapme/xomexo-store && docker compose logs -f` |
+| Back up now | `bash /home/grapme/xomexo-store/deploy/backup.sh` |
 | Reset a staff password (e.g. you're locked out) | `bash /home/grapme/xomexo-store/deploy/staff.sh reset you@example.com` |
 
 **Checkout is closed on the live site until Stripe is set up.** Without `STRIPE_SECRET_KEY`, orders would be marked paid without taking money, so in production the checkout page says "opens soon" instead. To open it, add the Stripe keys to `.env.local` and run `update.sh --force`. (`ALLOW_TEST_CHECKOUT=true` overrides this for a private staging copy. Never set it on the public site.)
 
 The first install loads the catalogue **without** the sample reviews. Updates never reseed, because that would undo price and stock changes made in /admin.
+
+**Backups** run every night at 3:30am (`deploy/backup.sh`, scheduled by `install.sh` and `update.sh`): a consistent copy of the database every night (the last 30 kept) and the product photos weekly (the last 4 kept), in `/home/grapme/backups/xomexo`. They're on the same server, so copy that folder somewhere else regularly too. To restore, stop the store (`docker compose stop`), unzip a copy over `/home/grapme/xomexo-data/xomexo.db`, and start it again.
+
+`ADMIN_SECRET` also encrypts sellers' bank details. If you ever change it, sellers have to re-enter them.
 
 The rate limiter is in-memory, so it assumes one Node process.
 

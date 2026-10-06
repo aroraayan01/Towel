@@ -4,10 +4,27 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import { PLACEHOLDER } from "./placeholder";
 import { prisma } from "./prisma";
 
+/**
+ * What customers can see: switched on, approved, and (for marketplace
+ * products) from a seller whose account is active. Every shop query uses this.
+ */
+export const visibleProduct = {
+  active: true,
+  reviewStatus: "approved",
+  OR: [{ sellerId: null }, { seller: { status: "active" } }],
+} satisfies Prisma.ProductWhereInput;
+
+/** The same rule for a product already loaded with its seller (checkout uses this). */
+export const isVisible = (p: { active: boolean; reviewStatus: string; seller?: { status: string } | null }) =>
+  p.active && p.reviewStatus === "approved" && (!p.seller || p.seller.status === "active");
+
+const approvedImages = { where: { approved: true }, orderBy: { sortOrder: "asc" as const } };
+
 const listInclude = {
   variants: { where: { archived: false }, orderBy: [{ sortOrder: "asc" as const }, { priceCents: "asc" as const }] },
-  images: { orderBy: { sortOrder: "asc" as const } },
+  images: approvedImages,
   reviews: { where: { approved: true }, select: { rating: true } },
+  seller: { select: { name: true, slug: true } },
 } satisfies Prisma.ProductInclude;
 
 type ProductForList = Prisma.ProductGetPayload<{ include: typeof listInclude }>;
@@ -57,6 +74,8 @@ export function summarise(p: ProductForList) {
     inStock: p.variants.some((v) => v.stock > 0),
     rating: ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null,
     reviewCount: ratings.length,
+    /** The marketplace seller, or null for xomexo's own products */
+    maker: p.seller ? { name: p.seller.name, slug: p.seller.slug } : null,
   };
 }
 
@@ -70,25 +89,29 @@ export type ProductFilter = {
   maxPrice?: number;
   inStock?: boolean;
   sort?: SortKey;
+  /** Only this marketplace seller's products (their maker page) */
+  sellerId?: string;
 };
 
 export async function listProducts(filter: ProductFilter = {}) {
-  const where: Prisma.ProductWhereInput = { active: true };
-  if (filter.category) where.category = filter.category;
-  if (filter.collection) where.collection = filter.collection;
+  const and: Prisma.ProductWhereInput[] = [visibleProduct];
+  if (filter.category) and.push({ category: filter.category });
+  if (filter.collection) and.push({ collection: filter.collection });
+  if (filter.sellerId) and.push({ sellerId: filter.sellerId });
   if (filter.q) {
     const q = filter.q.trim();
-    where.OR = [
+    and.push({ OR: [
       { name: { contains: q } },
       { tagline: { contains: q } },
       { description: { contains: q } },
       { material: { contains: q } },
       { variants: { some: { archived: false, colourName: { contains: q } } } },
-    ];
+      { seller: { name: { contains: q } } },
+    ] });
   }
 
   const rows = await prisma.product.findMany({
-    where,
+    where: { AND: and },
     include: listInclude,
     orderBy: [{ featured: "desc" }, { bestseller: "desc" }, { createdAt: "asc" }],
   });
@@ -120,18 +143,21 @@ export async function listProducts(filter: ProductFilter = {}) {
 
 export async function getProduct(slug: string) {
   return prisma.product.findFirst({
-    where: { slug, active: true },
+    where: { slug, ...visibleProduct },
     include: {
       variants: { where: { archived: false }, orderBy: [{ sortOrder: "asc" }, { priceCents: "asc" }] },
-      images: { orderBy: { sortOrder: "asc" } },
+      images: approvedImages,
       reviews: { where: { approved: true }, orderBy: { createdAt: "desc" } },
+      seller: {
+        select: { id: true, name: true, slug: true, gstRegistered: true, dispatchDays: true, shipFromSuburb: true, shipFromState: true, abn: true, legalName: true },
+      },
     },
   });
 }
 
 export async function relatedProducts(productId: string, collection: string, category: string) {
   const rows = await prisma.product.findMany({
-    where: { active: true, id: { not: productId }, category },
+    where: { ...visibleProduct, id: { not: productId }, category },
     include: listInclude,
     take: 8,
   });
@@ -142,13 +168,13 @@ export async function relatedProducts(productId: string, collection: string, cat
 }
 
 export async function productsBySlugs(slugs: string[]) {
-  const rows = await prisma.product.findMany({ where: { active: true, slug: { in: slugs } }, include: listInclude });
+  const rows = await prisma.product.findMany({ where: { ...visibleProduct, slug: { in: slugs } }, include: listInclude });
   return rows.map(summarise);
 }
 
 export async function allColours(category?: string) {
   return prisma.variant.findMany({
-    where: { archived: false, product: { active: true, ...(category ? { category } : {}) } },
+    where: { archived: false, product: { ...visibleProduct, ...(category ? { category } : {}) } },
     select: { colourName: true, colourHex: true },
     distinct: ["colourName"],
     orderBy: { colourName: "asc" },

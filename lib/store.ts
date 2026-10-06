@@ -38,6 +38,23 @@ export const store = {
     afterpay: { enabled: true, minCents: 100, maxCents: 200000 },
     welcomeCode: "WELCOME10",
   },
+
+  /**
+   * Whether the shop itself is registered for GST. Prices always include GST
+   * where it applies; this decides whether xomexo's own products charge it and
+   * whether invoices for them are tax invoices. PLACEHOLDER: confirm.
+   */
+  gstRegistered: true,
+
+  /** Other businesses selling through the shop (see /sell and /seller). */
+  marketplace: {
+    /** Commission for newly approved sellers, in basis points (1500 = 15%). Changeable per seller. */
+    defaultCommissionBps: 1500,
+    /** Days after a seller ships before that sale can be paid out (covers change-of-mind returns). */
+    payoutHoldDays: 14,
+    /** Shown on the Sell with us page */
+    payoutSchedule: "fortnightly, by bank transfer",
+  },
 } as const;
 
 export type Store = typeof store;

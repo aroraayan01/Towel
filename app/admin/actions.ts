@@ -6,8 +6,8 @@ import { z } from "zod";
 
 import { endSession, requireStaff, setupPasswordMatches, startSession } from "@/lib/admin-auth";
 import { audit } from "@/lib/audit";
-import { sendShippedEmail } from "@/lib/email";
-import { ORDER_STATUSES, STATUS_LABEL, type OrderStatus } from "@/lib/orders";
+import { closeOrder, updateShipment } from "@/lib/fulfilment";
+import { STATUS_LABEL, type OrderStatus } from "@/lib/orders";
 import { dummyHash, hashPassword, passwordProblem, verifyPassword } from "@/lib/passwords";
 import { prisma } from "@/lib/prisma";
 import { rateLimited, rateLimitedKey } from "@/lib/rate-limit";
@@ -76,32 +76,49 @@ export async function logout() {
 
 // ── Orders, products, reviews, messages ──────────────────────────────────────
 
-export async function updateOrder(form: FormData) {
+export async function updateOrderNotes(form: FormData) {
   const staff = await requireStaff("orders");
   const id = String(form.get("id"));
-  const status = String(form.get("status")) as OrderStatus;
-  if (!ORDER_STATUSES.includes(status)) throw new Error("Bad status");
-  const trackingNumber = String(form.get("trackingNumber") ?? "").trim() || null;
   const notes = String(form.get("notes") ?? "").trim() || null;
+  const order = await prisma.order.update({ where: { id }, data: { notes } });
+  await audit(staff, "order.update", `Order #${order.number}`, { href: `/admin/orders/${order.number}`, detail: "notes edited" });
+  revalidatePath("/admin", "layout");
+}
 
+/** Cancel or refund the whole order. Sellers' earnings on it are reversed. */
+export async function closeOrderAction(form: FormData) {
+  const staff = await requireStaff("orders");
+  const id = String(form.get("id"));
+  const status = form.get("status") === "REFUNDED" ? "REFUNDED" : "CANCELLED";
   const before = await prisma.order.findUniqueOrThrow({ where: { id } });
-  const order = await prisma.order.update({ where: { id }, data: { status, trackingNumber, notes } });
+  if (before.status === status) return;
+  await closeOrder(id, status);
+  await audit(staff, "order.update", `Order #${before.number}`, {
+    href: `/admin/orders/${before.number}`,
+    detail: `${STATUS_LABEL[before.status as OrderStatus] ?? before.status} → ${STATUS_LABEL[status]}`,
+  });
+  revalidatePath("/admin", "layout");
+}
 
-  const changes = [
-    before.status !== status && `${STATUS_LABEL[before.status as OrderStatus] ?? before.status} → ${STATUS_LABEL[status]}`,
-    before.trackingNumber !== trackingNumber && (trackingNumber ? `tracking ${trackingNumber}` : "tracking removed"),
-    before.notes !== notes && "notes edited",
-  ].filter(Boolean);
-
-  let emailed = false;
-  if (status === "SHIPPED" && before.status !== "SHIPPED" && form.get("notify") === "on") {
-    await sendShippedEmail(order);
-    emailed = true;
-  }
-  if (changes.length) {
-    await audit(staff, "order.update", `Order #${order.number}`, {
-      href: `/admin/orders/${order.number}`,
-      detail: changes.join(", ") + (emailed ? ", customer emailed" : ""),
+/** Update one shipment. For xomexo's own parcels; sellers normally update theirs in the seller portal. */
+export async function updateShipmentAdmin(form: FormData) {
+  const staff = await requireStaff("orders");
+  const id = String(form.get("id"));
+  const detail = await updateShipment(
+    id,
+    {
+      status: String(form.get("status")),
+      carrier: String(form.get("carrier") ?? ""),
+      trackingNumber: String(form.get("trackingNumber") ?? ""),
+      notify: form.get("notify") === "on",
+    },
+    { allowCancel: true }
+  );
+  const s = await prisma.shipment.findUniqueOrThrow({ where: { id }, include: { order: { select: { number: true } }, seller: { select: { name: true } } } });
+  if (detail) {
+    await audit(staff, "order.update", `Order #${s.order.number}`, {
+      href: `/admin/orders/${s.order.number}`,
+      detail: `${s.seller ? `${s.seller.name} shipment: ` : ""}${detail}`,
     });
   }
   revalidatePath("/admin", "layout");

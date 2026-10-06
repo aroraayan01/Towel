@@ -5,13 +5,28 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
-import { deleteImage, moveImage, updateImage } from "./actions";
+export type AdminImage = { id: string; url: string; alt: string; colourName: string | null; approved?: boolean };
 
-export type AdminImage = { id: string; url: string; alt: string; colourName: string | null };
+type ImageActions = {
+  update: (form: FormData) => Promise<void>;
+  move: (form: FormData) => Promise<void>;
+  remove: (form: FormData) => Promise<void>;
+};
 
 type Progress = { done: number; total: number; errors: string[] } | null;
 
-export function ProductImages({ productId, images, colours }: { productId: string; images: AdminImage[]; colours: string[] }) {
+/** Photo manager for a product. Admin and sellers pass their own upload endpoint and actions. */
+export function ProductImages({
+  images,
+  colours,
+  uploadUrl,
+  actions,
+}: {
+  images: AdminImage[];
+  colours: string[];
+  uploadUrl: string;
+  actions: ImageActions;
+}) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [colour, setColour] = useState("");
@@ -30,7 +45,7 @@ export function ProductImages({ productId, images, colours }: { productId: strin
       body.set("file", file);
       if (colour) body.set("colourName", colour);
       try {
-        const res = await fetch(`/api/admin/products/${productId}/images`, { method: "POST", body });
+        const res = await fetch(uploadUrl, { method: "POST", body });
         if (!res.ok) {
           const data = (await res.json().catch(() => null)) as { error?: string } | null;
           errors.push(`${file.name}: ${data?.error ?? `upload failed (${res.status})`}`);
@@ -104,7 +119,9 @@ export function ProductImages({ productId, images, colours }: { productId: strin
               <div className="bg-forest h-full transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
             </div>
             <p className="text-grey mt-1.5 text-xs">
-              {busy ? `Uploading ${progress.done + 1} of ${progress.total}…` : `Uploaded ${progress.total - progress.errors.length} of ${progress.total}.`}
+              {busy
+                ? `Uploading ${progress.done + 1} of ${progress.total}…`
+                : `Uploaded ${progress.total - progress.errors.length} of ${progress.total}.`}
             </p>
           </div>
         )}
@@ -123,17 +140,44 @@ export function ProductImages({ productId, images, colours }: { productId: strin
             // Keyed on the saved values too, so the card redraws with them after a save
             <li key={`${img.id}|${img.colourName ?? ""}|${img.alt}`} className="border-line border">
               <div className="bg-bone relative aspect-[4/5]">
-                <Image src={img.url} alt={img.alt} fill sizes="(min-width: 1536px) 20vw, (min-width: 768px) 28vw, 45vw" className="object-cover" />
-                {i === 0 && <span className="bg-forest absolute top-2 left-2 px-2 py-0.5 text-[10px] tracking-wider text-white uppercase">Main photo</span>}
+                <Image
+                  src={img.url}
+                  alt={img.alt}
+                  fill
+                  sizes="(min-width: 1536px) 20vw, (min-width: 768px) 28vw, 45vw"
+                  className="object-cover"
+                />
+                {i === 0 && (
+                  <span className="bg-forest absolute top-2 left-2 px-2 py-0.5 text-[10px] tracking-wider text-white uppercase">
+                    Main photo
+                  </span>
+                )}
+                {img.approved === false && (
+                  <span className="absolute top-2 right-2 bg-[#c9a13b] px-2 py-0.5 text-[10px] tracking-wider text-white uppercase">
+                    Awaiting approval
+                  </span>
+                )}
                 {img.url.includes("unsplash.com") && (
                   <span className="absolute right-2 bottom-2 bg-black/60 px-2 py-0.5 text-[10px] text-white">Sample stock photo</span>
                 )}
               </div>
-              <form action={updateImage} className="space-y-2 p-3">
+              <form action={actions.update} className="space-y-2 p-3">
                 <input type="hidden" name="id" value={img.id} />
-                <input name="alt" defaultValue={img.alt} className="input px-2 py-1.5 text-xs" aria-label="Description for screen readers and search" placeholder="What's in the photo" maxLength={200} />
+                <input
+                  name="alt"
+                  defaultValue={img.alt}
+                  className="input px-2 py-1.5 text-xs"
+                  aria-label="Description for screen readers and search"
+                  placeholder="What's in the photo"
+                  maxLength={200}
+                />
                 {colours.length > 1 && (
-                  <select name="colourName" defaultValue={img.colourName ?? ""} className="input px-2 py-1.5 text-xs" aria-label="Which colour this photo shows">
+                  <select
+                    name="colourName"
+                    defaultValue={img.colourName ?? ""}
+                    className="input px-2 py-1.5 text-xs"
+                    aria-label="Which colour this photo shows"
+                  >
                     <option value="">All colours</option>
                     {colours.map((c) => (
                       <option key={c} value={c}>
@@ -145,13 +189,13 @@ export function ProductImages({ productId, images, colours }: { productId: strin
                 <div className="flex items-center justify-between">
                   <button className="text-xs font-semibold hover:underline">Save</button>
                   <span className="flex items-center">
-                    <IconAction action={moveImage} id={img.id} dir="up" label="Move earlier" disabled={i === 0}>
+                    <IconAction action={actions.move} id={img.id} dir="up" label="Move earlier" disabled={i === 0}>
                       <ArrowLeft size={15} />
                     </IconAction>
-                    <IconAction action={moveImage} id={img.id} dir="down" label="Move later" disabled={i === images.length - 1}>
+                    <IconAction action={actions.move} id={img.id} dir="down" label="Move later" disabled={i === images.length - 1}>
                       <ArrowRight size={15} />
                     </IconAction>
-                    <IconAction action={deleteImage} id={img.id} label="Delete photo" confirmText="Delete this photo?">
+                    <IconAction action={actions.remove} id={img.id} label="Delete photo" confirmText="Delete this photo?">
                       <Trash2 size={15} />
                     </IconAction>
                   </span>

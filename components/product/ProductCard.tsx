@@ -21,7 +21,10 @@ export function ProductCard({ p, preload }: { p: ProductSummary; preload?: boole
           {label && <span className="caps absolute left-3 top-3 bg-white px-2 py-1 !text-[10px]">{label}</span>}
         </div>
         <div className="mt-3 flex items-start justify-between gap-3 text-[14px]">
-          <h3 className="font-normal">{p.name}</h3>
+          <h3 className="font-normal">
+            {p.name}
+            {p.maker && <span className="mt-0.5 block text-[12px] text-grey">by {p.maker.name}</span>}
+          </h3>
           <PriceTag className="shrink-0" cents={p.minPriceCents} compareAt={p.compareAtCents} from={p.minPriceCents !== p.maxPriceCents} />
         </div>
         {p.colours.length > 1 && (

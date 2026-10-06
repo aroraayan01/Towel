@@ -6,8 +6,9 @@ import { isCategory } from "@/lib/collections";
 import { parseJson } from "@/lib/json";
 import { prisma } from "@/lib/prisma";
 import { AdminTitle } from "../../ui";
-import { ProductEditor } from "../ProductEditor";
-import { ProductImages } from "../ProductImages";
+import { ProductEditor } from "@/components/catalogue/ProductEditor";
+import { ProductImages } from "@/components/catalogue/ProductImages";
+import { deleteImage, deleteProduct, moveImage, saveProduct, updateImage } from "../actions";
 
 const money = (cents: number | null) => (cents == null ? "" : (cents / 100).toFixed(2));
 
@@ -61,11 +62,18 @@ export default async function EditProductPage({ params, searchParams }: PageProp
       )}
 
       <div className="mb-6">
-        <ProductImages productId={p.id} images={p.images.map(({ id, url, alt, colourName }) => ({ id, url, alt, colourName }))} colours={colours} />
+        <ProductImages
+          images={p.images.map(({ id, url, alt, colourName, approved }) => ({ id, url, alt, colourName, approved }))}
+          colours={colours}
+          uploadUrl={`/api/admin/products/${p.id}/images`}
+          actions={{ update: updateImage, move: moveImage, remove: deleteImage }}
+        />
       </div>
 
       <ProductEditor
         key={p.updatedAt.toISOString()}
+        save={saveProduct}
+        remove={deleteProduct}
         product={{
           id: p.id,
           name: p.name,

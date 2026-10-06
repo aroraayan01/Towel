@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Wordmark } from "@/components/layout/Logo";
 import { currentStaff } from "@/lib/admin-auth";
+import { approvalQueue } from "@/lib/marketplace";
 import { prisma } from "@/lib/prisma";
 import { can, homeFor, ROLE_INFO, isRole, type Permission } from "@/lib/staff";
 import { logout } from "./actions";
@@ -13,10 +14,13 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const staff = await currentStaff();
   if (!staff) return <div className="flex flex-1 items-center justify-center bg-bone p-4">{children}</div>;
 
-  const [toPack, pendingReviews, openMessages] = await Promise.all([
-    prisma.order.count({ where: { status: "PAID" } }),
+  const [toPack, pendingReviews, openMessages, applications, approvals] = await Promise.all([
+    // Orders with our own parcel still to send (sellers ship theirs)
+    prisma.order.count({ where: { status: { in: ["PAID", "PACKED", "PARTLY_SHIPPED"] }, shipments: { some: { sellerId: null, status: { in: ["TO_SHIP", "PACKED"] } } } } }),
     prisma.review.count({ where: { approved: false } }),
     prisma.contactMessage.count({ where: { handled: false } }),
+    prisma.seller.count({ where: { status: "pending" } }),
+    prisma.product.count({ where: approvalQueue }),
   ]);
   // Everyone only sees the sections their role allows
   const all: [string, string, Permission, number?][] = [
@@ -26,6 +30,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     ["/admin/reviews", "Reviews", "reviews", pendingReviews],
     ["/admin/messages", "Messages", "messages", openMessages],
     ["/admin/subscribers", "Subscribers", "subscribers"],
+    ["/admin/sellers", "Sellers", "sellers", applications],
+    ["/admin/approvals", "Approvals", "approvals", approvals],
+    ["/admin/payouts", "Payouts", "payouts"],
     ["/admin/staff", "Staff", "staff"],
     ["/admin/activity", "Activity", "activity"],
   ];

@@ -4,16 +4,22 @@ import { notFound } from "next/navigation";
 
 import { ClearCart } from "@/components/cart/ClearCart";
 import { Photo } from "@/components/Photo";
+import { supplierLine } from "@/lib/email";
 import { formatMoney } from "@/lib/money";
 import { markOrderPaid, STATUS_LABEL, tokenMatches, type OrderStatus } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
+import { SHIPMENT_LABEL, trackingUrl, type ShipmentStatus } from "@/lib/shipments";
 import { getStripe } from "@/lib/stripe";
 import { store } from "@/lib/store";
 
 export const metadata: Metadata = { title: "Your order", robots: { index: false } };
 
 const withItems = {
-  items: { include: { variant: true, product: { include: { images: { orderBy: { sortOrder: "asc" as const } } } } } },
+  items: { include: { variant: true, product: { include: { images: { where: { approved: true }, orderBy: { sortOrder: "asc" as const } } } } } },
+  shipments: {
+    orderBy: { createdAt: "asc" as const },
+    include: { seller: { select: { name: true, slug: true, legalName: true, abn: true, gstRegistered: true } } },
+  },
 };
 
 const STEPS: { status: OrderStatus; label: string }[] = [
@@ -45,7 +51,9 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
   }
 
   const status = order.status as OrderStatus;
-  const step = STEPS.findIndex((s) => s.status === status);
+  // Partly shipped sits between packed and shipped on the progress bar
+  const step = STEPS.findIndex((s) => s.status === (status === "PARTLY_SHIPPED" ? "PACKED" : status));
+  const multi = order.shipments.length > 1;
   const pending = status === "PENDING";
 
   return (
@@ -60,7 +68,9 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
         {thanks
           ? pending
             ? "This usually takes a few seconds, sometimes longer with Afterpay. Refresh this page shortly. We'll email you once it's confirmed."
-            : `Your order is confirmed and a receipt is on its way to ${order.email}. We'll email tracking details when it ships, usually within 1 to 2 business days.`
+            : multi
+              ? `Your order is confirmed and a receipt is on its way to ${order.email}. It's coming in ${order.shipments.length} parcels from different makers, and we'll email tracking details as each one ships.`
+              : `Your order is confirmed and a receipt is on its way to ${order.email}. We'll email tracking details when it ships, usually within 1 to 2 business days.`
           : `Placed ${order.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}.`}
       </p>
 
@@ -75,51 +85,83 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
         </ol>
       )}
 
-      {order.trackingNumber && (
-        <p className="mt-8 bg-bone px-5 py-4 text-[14px]">
-          Tracking number {order.trackingNumber}.{" "}
-          <a
-            href={`https://auspost.com.au/mypost/track/details/${encodeURIComponent(order.trackingNumber)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="link"
-          >
-            Track with Australia Post
-          </a>
-        </p>
-      )}
-
       <div className="mt-12 grid gap-12 md:grid-cols-[1.5fr_1fr]">
         <div>
-          <h2 className="text-[15px]">Items</h2>
-          <ul className="mt-3 border-t border-line">
-            {order.items.map((i) => {
-              // Show the photo of the colour that was ordered
-              const img = i.product.images.find((x) => x.colourName === i.variant.colourName) ?? i.product.images[0];
-              return (
-              <li key={i.id} className="flex gap-4 border-b border-line py-4 text-[14px]">
-                <div className="relative aspect-[4/5] w-16 shrink-0 bg-bone">
-                  {img && <Photo src={img.url} alt="" sizes="64px" />}
+          {order.shipments.map((sh) => {
+            const items = order.items.filter((i) => i.shipmentId === sh.id);
+            const track = trackingUrl(sh.carrier, sh.trackingNumber);
+            const gst = items.reduce((n, i) => n + i.gstCents, 0) + sh.shippingGstCents;
+            return (
+              <section key={sh.id} className="mb-8">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="text-[15px]">
+                    {multi ? (
+                      sh.seller ? (
+                        <>
+                          From{" "}
+                          <Link href={`/makers/${sh.seller.slug}`} className="link">
+                            {sh.seller.name}
+                          </Link>
+                        </>
+                      ) : (
+                        `From ${store.name}`
+                      )
+                    ) : (
+                      "Items"
+                    )}
+                  </h2>
+                  {multi && !pending && <span className="text-[13px] text-grey">{SHIPMENT_LABEL[sh.status as ShipmentStatus] ?? sh.status}</span>}
                 </div>
-                <div className="flex-1">
-                  <p>
-                    {i.name} × {i.quantity}
+                {sh.trackingNumber && (
+                  <p className="mt-2 bg-bone px-4 py-3 text-[14px]">
+                    {sh.carrier && sh.carrier !== "Other" ? `${sh.carrier} tracking` : "Tracking"} {sh.trackingNumber}
+                    {track && (
+                      <>
+                        {". "}
+                        <a href={track} target="_blank" rel="noopener noreferrer" className="link">
+                          Track this parcel
+                        </a>
+                      </>
+                    )}
                   </p>
-                  <p className="text-[13px] text-grey">
-                    {i.variantLabel}
-                    {i.monogram && `, monogram ${i.monogram}`}
-                  </p>
-                </div>
-                <p className="tabular-nums">{formatMoney((i.unitCents + i.monogramCents) * i.quantity)}</p>
-              </li>
-              );
-            })}
-          </ul>
+                )}
+                <ul className="mt-3 border-t border-line">
+                  {items.map((i) => {
+                    // Show the photo of the colour that was ordered
+                    const img = i.product.images.find((x) => x.colourName === i.variant.colourName) ?? i.product.images[0];
+                    return (
+                      <li key={i.id} className="flex gap-4 border-b border-line py-4 text-[14px]">
+                        <div className="relative aspect-[4/5] w-16 shrink-0 bg-bone">{img && <Photo src={img.url} alt="" sizes="64px" />}</div>
+                        <div className="flex-1">
+                          <p>
+                            {i.name} × {i.quantity}
+                          </p>
+                          <p className="text-[13px] text-grey">
+                            {i.variantLabel}
+                            {i.monogram && `, ${sh.seller ? "initials" : "monogram"} ${i.monogram}`}
+                          </p>
+                        </div>
+                        <p className="tabular-nums">{formatMoney((i.unitCents + i.monogramCents) * i.quantity)}</p>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-2 flex justify-between gap-4 text-[13px] text-grey">
+                  <span>{sh.method}</span>
+                  <span className="tabular-nums">{sh.shippingCents ? formatMoney(sh.shippingCents) : "Free"}</span>
+                </p>
+                <p className="mt-1 text-[12px] text-grey">
+                  Supplier: {supplierLine(sh.seller)}
+                  {gst > 0 && ` · GST ${formatMoney(gst)}`}
+                </p>
+              </section>
+            );
+          })}
           <dl className="mt-4 space-y-1.5 text-[14px]">
             <Row label="Subtotal" value={order.subtotalCents} />
             {order.discountCents > 0 && <Row label={`Discount (${order.discountCode})`} value={-order.discountCents} />}
             {order.giftWrapCents > 0 && <Row label="Gift wrap" value={order.giftWrapCents} />}
-            <Row label={order.shippingMethod} value={order.shippingCents} />
+            <Row label="Delivery" value={order.shippingCents} />
             <div className="flex justify-between border-t border-line pt-2 text-[16px]">
               <dt>Total</dt>
               <dd>{formatMoney(order.totalCents)}</dd>
@@ -129,9 +171,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
               <dd>{formatMoney(order.gstCents)}</dd>
             </div>
           </dl>
-          <p className="mt-4 text-[12px] text-grey">
-            Tax invoice. {store.legalName}, ABN {store.abn}.
-          </p>
+          <p className="mt-4 text-[12px] text-grey">This page is your tax invoice. Each part shows who supplied it and the GST they charged.</p>
         </div>
 
         <div className="space-y-8 text-[14px]">

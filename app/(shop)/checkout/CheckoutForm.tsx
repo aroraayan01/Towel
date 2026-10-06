@@ -8,7 +8,7 @@ import { Photo } from "@/components/Photo";
 import { FreeShippingBar } from "@/components/ui";
 import { afterpayInstalment, formatMoney } from "@/lib/money";
 import { lineKey, lineTotalCents, totals } from "@/lib/pricing";
-import { allQuotes, STATES, stateForPostcode, type ShippingMethod, type StateCode } from "@/lib/shipping";
+import { STATES, stateForPostcode, type ShippingMethod, type StateCode } from "@/lib/shipping";
 import { store } from "@/lib/store";
 import { placeOrder, previewDiscount, type CheckoutState } from "./actions";
 
@@ -27,7 +27,9 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
   const [checking, startCheck] = useTransition();
 
   const t = totals({ lines, state: region || null, method, percentOff: applied?.percentOff, giftWrap });
-  const quotes = allQuotes(region || null, t.subtotal - t.discount);
+  // Each method priced across every parcel in the cart
+  const quotes = (["standard", "express"] as const).map((m) => totals({ lines, state: region || null, method: m, percentOff: applied?.percentOff }).shipping);
+  const multi = t.groups.length > 1;
   const pcState = stateForPostcode(postcode);
   const pcMismatch = postcode.length === 4 && region && pcState !== region;
   const err = state?.fields ?? {};
@@ -165,9 +167,10 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
                 <span className="flex items-center gap-3">
                   <input type="radio" name="method" value={q.method} checked={method === q.method} onChange={() => setMethod(q.method)} className="size-4 accent-ink" />
                   <span>
-                    <span className="block">{q.label}</span>
+                    <span className="block">{q.method === "standard" ? "Standard delivery" : "Express delivery"}</span>
                     <span className="text-[13px] text-grey">
                       {q.eta}
+                      {multi && `, ${t.groups.length} parcels`}
                       {!region && ". Select your state for the exact price."}
                     </span>
                   </span>
@@ -196,13 +199,19 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
             <span>We never include prices in the parcel.</span>
             <span>{note.length}/250</span>
           </p>
-          <label className="mt-4 flex cursor-pointer items-start gap-3 text-[14px]">
-            <input type="checkbox" name="giftWrap" checked={giftWrap} onChange={(e) => setGiftWrap(e.target.checked)} className="mt-1 size-4 accent-ink" />
-            <span>
-              Gift wrap (+{formatMoney(store.commerce.giftWrapCents)})
-              <span className="block text-[13px] text-grey">Recycled tissue and cotton twine.</span>
-            </span>
-          </label>
+          {t.giftWrapAllowed ? (
+            <label className="mt-4 flex cursor-pointer items-start gap-3 text-[14px]">
+              <input type="checkbox" name="giftWrap" checked={giftWrap} onChange={(e) => setGiftWrap(e.target.checked)} className="mt-1 size-4 accent-ink" />
+              <span>
+                Gift wrap (+{formatMoney(store.commerce.giftWrapCents)})
+                <span className="block text-[13px] text-grey">Recycled tissue and cotton twine.</span>
+              </span>
+            </label>
+          ) : (
+            <p className="mt-4 text-[13px] text-grey">
+              Gift wrap isn&apos;t available because some items come straight from their makers. Your gift note goes in every parcel.
+            </p>
+          )}
         </Section>
 
         {state?.error && (
@@ -284,7 +293,17 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
             <Row label="Subtotal" value={formatMoney(t.subtotal)} />
             {t.discount > 0 && <Row label={`Discount (${applied?.code})`} value={`−${formatMoney(t.discount)}`} highlight />}
             {t.giftWrap > 0 && <Row label="Gift wrapping" value={formatMoney(t.giftWrap)} />}
-            <Row label={t.shipping.label} value={t.shipping.free ? "Free" : region ? formatMoney(t.shipping.cents) : `from ${formatMoney(t.shipping.cents)}`} />
+            {multi ? (
+              t.groups.map((g) => (
+                <Row
+                  key={g.key}
+                  label={`Delivery from ${g.name}`}
+                  value={g.shipping.free ? "Free" : region ? formatMoney(g.shipping.cents) : `from ${formatMoney(g.shipping.cents)}`}
+                />
+              ))
+            ) : (
+              <Row label={t.shipping.label} value={t.shipping.free ? "Free" : region ? formatMoney(t.shipping.cents) : `from ${formatMoney(t.shipping.cents)}`} />
+            )}
             <div className="flex justify-between border-t border-line pt-3 text-[17px]">
               <dt>Total</dt>
               <dd className="tabular-nums">
@@ -295,7 +314,7 @@ export function CheckoutForm({ paymentsLive, cancelled }: { paymentsLive: boolea
             <Row label="Includes GST of" value={formatMoney(t.gst)} muted />
           </dl>
 
-          {t.toFreeShipping > 0 && (
+          {!multi && t.toFreeShipping > 0 && (
             <div className="mt-4">
               <FreeShippingBar remaining={t.toFreeShipping} />
             </div>
